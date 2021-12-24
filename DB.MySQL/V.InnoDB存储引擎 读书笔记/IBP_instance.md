@@ -1,0 +1,1 @@
+innodb_buffer_pool_instances，This option only takes effect **when setting innodb_buffer_pool_size to 1GB** or more. 

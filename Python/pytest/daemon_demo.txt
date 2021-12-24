@@ -1,0 +1,525 @@
+Python守护进程daemon实现
+1 守护进程
+
+1.1 守护进程
+
+守护进程是系统中生存期较长的一种进程，常常在系统引导装入时启动，在系统关闭时终止，没有控制终端，在后台运行。守护进程脱离于终端是为了避免进程在执行过程中的信息在任何终端上显示并且进程也不会被任何终端所产生的终端信息所打断。
+
+在这里，我们在Linux2.6内核的centos中，ps -ef |awk '{print $1"\t "$2"\t "$3"\t  "$8}'看到：PPID=0的进程有两个，分别是PID=1的/sbin/init进程和PID=2的[kthreadd]进程。
+
+UID        PID  PPID  C STIME TTY          TIME CMD
+
+root         1     0  0 Apr16 ?        00:00:03 /sbin/init
+
+root         2     0  0 Apr16 ?        00:00:00 [kthreadd]
+
+root         3     2  0 Apr16 ?        00:00:00 [ksoftirqd/0]
+
+
+其中，[kthreadd]为内核进程，由它fork出来的子进程都是内核进程，并且内核守护进程的名字出现在方括号中，对于需要在进程上下文执行工作但却不被用户层进程(init)上下文调用的每一个内核组件，通常有它自己的内核守护进程。 
+而对于init进程，它是一个由内核在引导装入时启动的用户层次的命令，属于用户级守护进程，主要负责启动各运行层次特定系统服务。这些服务通常是在它们自己拥有的守护进程的帮助下实现的。用户层守护进程缺少控制终端可能是守护进程调用了setsid的结果。大多数用户层守护进程都是进程组的组长进程以及会话的首进程，而且是这些进程组和会话中的唯一进程。 
+
+
+守护进程的启动方式有其特殊之处。它可以在Linux系统启动时从启动脚本/etc/rc.d中启动，可以由作业规划进程crond启动，还可以由用户终端（通常是shell）执行。此外，守护进程必须与其运行前的环境隔离开来。这些环境包括未关闭的文件描述符，控制终端，会话和进程组，工作目录以及文件创建屏蔽字等。这些环境通常是守护进程从执行它的父进程（特别是shell）中继承下来的。 
+1.2 守护进程的特性
+
+1.在后台运行 
+2.与其运行前的环境隔离开来。这些环境包括未关闭的文件描述符、控制终端、会话和进程组、工作目录以及文件创建掩码等。这些环境通常是守护进程从执行它的父进程（特别是shell）中继承下来的。 
+3.启动方式特殊，它可以在系统启动时从启动脚本/etc/rc.d中启动，可以由inetd守护进程启动，可以由crond启动，还可以由用户终端（通常是shell）执行。 
+总之，除开这些特殊性以外，守护进程与普通进程基本上没有什么区别。因此，编写守护进程实际上是把一个普通进程按照上述的守护进程的特性改造成为守护进程。
+注意，所有守护进程都以超级用户（用户ID为0）的优先权运行。没有一个守护进程具有控制终端，终端名称设置为问号（？）、终端前台进程组ID设置为－1。缺少控制终端是守护进程调用了setsid的结果。除update以外的所有守护进程都是进程组的首进程，对话期的首进程，而且是这些进程组和对话期中的唯一进程。最后，应当引起注意的是所有这些守护进程的父进程都是init进程。
+
+2 编程规范
+
+详细参见: 《AdvancedProgrammingin The Unix Environment》Section 13.3 Page 583
+1、调用umask将文件模式创建屏蔽字设置为一个已知值（通常是0）。如前所述，由继承得来的文件模式创建屏蔽字可能会被设置为拒绝权限。我们可以根据我们的具体需求设定特定的权限。
+2、调用fork，然后使父进程exit。这样做，使得当我们以./的shell命令启动守护进程时，父进程终止会让shell认为此命令已经执行完毕，而且，这也使子进程获得了一个新的进程ID。此外，让父进程先于子进程exit，会使子进程变为孤儿进程，这样子进程成功被init这个用户级守护进程收养。
+3、调用setsid创建一个新会话。这在setsid函数中有介绍，调用setsid，会使这个子进程成为（a）新会话的首进程，（b）成为一个新进程组的组长进程，（c）切断其与控制终端的联系，或者就是没有控制终端。至此，这个子进程作为新的进程组的组长，完全脱离了其他进程的控制，并且没有控制终端。
+4、将当前工作目录更改为根目录（或某一特定目录位置）。这是为了保证守护进程的当前工作目录在一个挂载的文件系统中，该文件系统不能被卸载。
+5、关闭不再需要的文件描述符。根据具体情况来定。
+6、某些守护进程可以打开/dev/null使其具有文件描述符0、1、2，这使任何一个试图读标准输入、写标准输出或标准错误的库例程都不会产生任何效果。
+7、忽略SIGCHLD信号
+   这一步并非必须的，只对需要创建子进程的守护进程才有必要，很多服务器守护进程设计成通过派生子进程来处理客户端的请求，如果父进程不对SIGCHLD信号进行处理的话，子进程在终止后变成僵尸进程，通过将信号SIGCHLD的处理方式设置为SIG_IGN可以避免这种情况发生。
+8、用日志系统记录出错信息
+   因为守护进程没有控制终端，当进程出现错误时无法写入到标准输出上，可以通过调用syslog将出错信息写入到指定的文件中。该接口函数包括openlog、syslog、closelog、setlogmask，具体可参考13.4节出错记录。
+9、守护进程退出处理
+   当用户需要外部停止守护进程运行时，往往会使用 kill命令停止该守护进程。所以，守护进程中需要编码来实现kill发出的signal信号处理，达到进程的正常退出。
+
+总结守护进程编程规则 
+1.在后台运行，调用fork ，然后使父进程exit 
+2.脱离控制终端，登录会话和进程组，调用setsid（）使进程成为会话组长 
+3.禁止进程重新打开控制终端 
+4.关闭打开的文件描述符，调用fclose（） 
+5.将当前工作目录更改为根目录。 
+6.重设文件创建掩码为0 
+7.处理SIGCHLD 信号
+3 Python守护进程
+
+3.1 函数实现
+
+#!/usr/bin/env python
+# coding:utf-8
+import os,sys,time
+ 
+def daemon_init(stdin='/dev/null',stdout='/dev/null',stderr='/dev/null'):
+    sys.stdin = open(stdin,'r')
+    sys.stdout = open(stdout,'a+')
+    sys.stderr = open(stderr,'a+')
+    try:
+        pid = os.fork()
+        if pid > 0:        #parrent
+            os._exit(0)
+    except OSError,e:
+        sys.stderr.write("first fork failed!!"+e.strerror)
+        os._exit(1)
+ 
+    # 子进程， 由于父进程已经退出，所以子进程变为孤儿进程，由init收养
+'''setsid使子进程成为新的会话首进程，和进程组的组长，与原来的进程组、控制终端和登录会话脱离。'''
+    os.setsid()
+'''防止在类似于临时挂载的文件系统下运行，例如/mnt文件夹下，这样守护进程一旦运行，临时挂载的文件系统就无法卸载了，这里我们推荐把当前工作目录切换到根目录下'''
+    os.chdir("/")
+'''设置用户创建文件的默认权限，设置的是权限“补码”，这里将文件权限掩码设为0，使得用户创建的文件具有最大的权限。否则，默认权限是从父进程继承得来的'''
+    os.umask(0)
+ 
+    try:
+        pid = os.fork()     #第二次进行fork,为了防止会话首进程意外获得控制终端
+        if pid > 0:
+            os._exit(0)     #父进程退出
+    except OSError,e:
+        sys.stderr.write("second fork failed!!"+e.strerror)
+        os._exit(1)
+ 
+    # 孙进程
+#   for i in range(3,64):  # 关闭所有可能打开的不需要的文件，UNP中这样处理，但是发现在python中实现不需要。
+#       os.close(i)
+    sys.stdout.write("Daemon has been created! with pid: %d\n" % os.getpid())
+    sys.stdout.flush()  #由于这里我们使用的是标准IO，回顾APUE第五章，这里应该是行缓冲或全缓冲，因此要调用flush，从内存中刷入日志文件。
+ 
+def main():
+    print '========main function start!============' #在调用daemon_init函数前是可以使用print到标准输出的，调用之后就要用把提示信息通过stdout发送到日志系统中了
+    daemon_init('/dev/null','/tmp/daemon.log','/tmp/daemon.err')    # 调用之后，你的程序已经成为了一个守护进程，可以执行自己的程序入口了
+    time.sleep(10) #daemon化自己的程序之后，sleep 10秒，模拟阻塞
+ 
+ 
+if __name__ == '__main__':
+    main()
+
+
+
+
+-----------------
+#!/usr/bin/env python 
+#coding: utf-8 
+import sys, os 
+ 
+'''将当前进程fork为一个守护进程 
+  注意：如果你的守护进程是由inetd启动的，不要这样做！inetd完成了 
+  所有需要做的事情，包括重定向标准文件描述符，需要做的事情只有chdir()和umask()了 
+''' 
+ 
+def daemonize (stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'): 
+   #重定向标准文件描述符（默认情况下定向到/dev/null） 
+  try:  
+    pid = os.fork()  
+     #父进程(会话组头领进程)退出，这意味着一个非会话组头领进程永远不能重新获得控制终端。 
+    if pid > 0: 
+      sys.exit(0)  #父进程退出 
+  except OSError, e:  
+    sys.stderr.write ("fork #1 failed: (%d) %s\n" % (e.errno, e.strerror) ) 
+    sys.exit(1) 
+ 
+   #从母体环境脱离 
+  os.chdir("/") #chdir确认进程不保持任何目录于使用状态，否则不能umount一个文件系统。也可以改变到对于守护程序运行重要的文件所在目录 
+  os.umask(0)  #调用umask(0)以便拥有对于写的任何东西的完全控制，因为有时不知道继承了什么样的umask。 
+  os.setsid()  #setsid调用成功后，进程成为新的会话组长和新的进程组长，并与原来的登录会话和进程组脱离。 
+ 
+   #执行第二次fork 
+  try:  
+    pid = os.fork()  
+    if pid > 0: 
+      sys.exit(0)  #第二个父进程退出 
+  except OSError, e:  
+    sys.stderr.write ("fork #2 failed: (%d) %s\n" % (e.errno, e.strerror) ) 
+    sys.exit(1) 
+ 
+   #进程已经是守护进程了，重定向标准文件描述符 
+ 
+  for f in sys.stdout, sys.stderr: f.flush() 
+  si = open(stdin, 'r') 
+  so = open(stdout, 'a+') 
+  se = open(stderr, 'a+', 0) 
+  os.dup2(si.fileno(), sys.stdin.fileno())  #dup2函数原子化关闭和复制文件描述符 
+  os.dup2(so.fileno(), sys.stdout.fileno()) 
+  os.dup2(se.fileno(), sys.stderr.fileno()) 
+ 
+#示例函数：每秒打印一个数字和时间戳 
+def main(): 
+  import time 
+  sys.stdout.write('Daemon started with pid %d\n' % os.getpid()) 
+  sys.stdout.write('Daemon stdout output\n') 
+  sys.stderr.write('Daemon stderr output\n') 
+  c = 0 
+  while True: 
+    sys.stdout.write('%d: %s\n' %(c, time.ctime())) 
+    sys.stdout.flush() 
+    c = c+1 
+    time.sleep(1) 
+ 
+if __name__ == "__main__": 
+   daemonize('/dev/null','/tmp/daemon_stdout.log','/tmp/daemon_error.log') 
+   main() 
+可以通过命令ps -ef | grep daemon.py查看后台运行的继承，在/tmp/daemon_error.log会记录错误运行日志，在/tmp/daemon_stdout.log会记录标准输出日志。
+
+---------------
+
+
+3.2 类实现
+
+参考：http://pythonhosted.org/KiTT/_modules/kitt/daemon.html#Daemon
+
+#!/usr/bin/env python
+ 
+import sys, os, time, atexit
+from signal import SIGTERM
+ 
+class Daemon:
+    """
+    A generic daemon class.
+    Usage: subclass the Daemon class and override the run() method
+    """
+    def __init__(self, pidfile, stdin='/dev/null', stdout='/dev/null', stderr='/dev/null', args=None):
+        self.stdin = stdin
+        self.stdout = stdout
+        self.stderr = stderr
+        self.pidfile = pidfile
+        self.args = args
+ 
+    def daemonize(self):
+        """
+        do the UNIX double-fork magic, see Stevens' "Advanced
+        Programming in the UNIX Environment" for details (ISBN 0201563177)
+        http://www.erlenstar.demon.co.uk/unix/faq_2.html#SEC16
+        """
+        try:
+            pid = os.fork()
+            if pid > 0:
+                # exit first parent
+                sys.exit(0)
+        except OSError, e:
+            sys.stderr.write("fork #1 failed: %d (%s)\n" % (e.errno, e.strerror))
+            sys.exit(1)
+ 
+        # decouple from parent environment
+        os.chdir("/")
+        os.setsid()
+        os.umask(0)
+ 
+        # do second fork
+        try:
+            pid = os.fork()
+            if pid > 0:
+                # exit from second parent
+                sys.exit(0)
+        except OSError, e:
+            sys.stderr.write("fork #2 failed: %d (%s)\n" % (e.errno, e.strerror))
+            sys.exit(1)
+ 
+        # redirect standard file descriptors
+        sys.stdout.flush()
+        sys.stderr.flush()
+        si = file(self.stdin, 'r')
+        so = file(self.stdout, 'a+')
+        se = file(self.stderr, 'a+', 0)
+        os.dup2(si.fileno(), sys.stdin.fileno())
+        os.dup2(so.fileno(), sys.stdout.fileno())
+        if type(sys.stderr) is file:
+            os.dup2(se.fileno(), sys.stderr.fileno())
+ 
+        # write pidfile
+        atexit.register(self.delpid)
+        pid = str(os.getpid())
+        file(self.pidfile,'w+').write("%s\n" % pid)
+ 
+    def delpid(self):
+        os.remove(self.pidfile)
+ 
+    def start(self):
+        """
+        Start the daemon
+        """
+        # Check for a pidfile to see if the daemon already runs
+        try:
+            pf = file(self.pidfile,'r')
+            pid = int(pf.read().strip())
+            pf.close()
+        except IOError:
+            pid = None
+ 
+        if pid:
+            message = "pidfile %s already exist. Daemon already running?\n"
+            sys.stderr.write(message % self.pidfile)
+            sys.exit(1)
+ 
+        # Start the daemon
+        self.daemonize()
+        self.run()
+ 
+    def stop(self):
+        """
+        Stop the daemon
+        """
+        # Get the pid from the pidfile
+        try:
+            pf = file(self.pidfile,'r')
+            pid = int(pf.read().strip())
+            pf.close()
+        except IOError:
+            pid = None
+ 
+        if not pid:
+            message = "pidfile %s does not exist. Daemon not running?\n"
+            sys.stderr.write(message % self.pidfile)
+            return # not an error in a restart
+ 
+        # Try killing the daemon process
+        try:
+            while 1:
+                os.kill(pid, SIGTERM)
+                time.sleep(0.1)
+        except OSError, err:
+            err = str(err)
+            if err.find("No such process") > 0:
+                if os.path.exists(self.pidfile):
+                    os.remove(self.pidfile)
+            else:
+                print str(err)
+                sys.exit(1)
+ 
+    def restart(self):
+        """
+        Restart the daemon
+        """
+        self.stop()
+        self.start()
+ 
+    def run(self):
+        """
+        You should override this method when you subclass Daemon. It will be called after the process has been
+        daemonized by start() or restart().
+        """
+
+
+
+
+
+4 执行python程序
+
+4.1 执行shell
+
+root@develop:~# cat start.sh 
+#!/bin/bash
+ 
+nohup python -u /opt/start.py > /var/log/start.out 2>&1 &
+
+
+
+
+注意：加 -u参数，使得python不启用缓冲。python的输出有缓冲，导致ser_log.out并不能够马上看到输出。 
+
+参考：https://www.ibm.com/developerworks/cn/linux/l-cn-nohup/
+
+4.2 使用subprocess执行shell
+#! /usr/bin/env python
+#-*- coding: utf-8 -*-
+ 
+import string
+import os
+import sys
+import time
+from signal import SIGTERM 
+import subprocess
+ 
+def daemonize(stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
+	""" 
+	do the UNIX double-fork magic to set daemonize
+	"""  
+	try:  
+		pid = os.fork()  
+		if pid > 0:  
+			# exit first parent  
+			sys.exit(0)  
+	except OSError, e:  
+		sys.stderr.write("fork #1 failed: %d (%s)\n" % (e.errno, e.strerror))  
+		sys.exit(1)  
+ 
+ 
+	# decouple from parent environment  
+	os.chdir("/")  
+	os.setsid()  
+	os.umask(0)  
+ 
+ 
+	# do second fork  
+	try:  
+		pid = os.fork()  
+		if pid > 0:  
+			# exit from second parent  
+			sys.exit(0)  
+	except OSError, e:  
+		sys.stderr.write("fork #2 failed: %d (%s)\n" % (e.errno, e.strerror))  
+		sys.exit(1)  
+ 
+ 
+	# redirect standard file descriptors  
+	sys.stdout.flush()  
+	sys.stderr.flush()  
+	si = file(stdin, 'r')  
+	so = file(stdout, 'a+')  
+	se = file(stderr, 'a+', 0)  
+	os.dup2(si.fileno(), sys.stdin.fileno())  
+	os.dup2(so.fileno(), sys.stdout.fileno())  
+	if type(sys.stderr) is file:  
+		os.dup2(se.fileno(), sys.stderr.fileno())
+ 
+def main():
+	daemonize()
+	
+	cmd_list = (
+                "python /opt/port",
+		"python /opt/start",
+        )
+				
+	for cmd in cmd_list:
+		time.sleep(1)
+		print cmd
+		subprocess.Popen(cmd, stdin=None, stdout=None, stderr=None, shell=True)
+		
+if __name__ == "__main__":
+    main()
+
+
+
+subprocess学习： http://blog.csdn.net/imzoer/article/details/8678029
+
+4.3 实例
+
+#! /usr/bin/env python
+# -*- coding: utf-8 -*-
+ 
+import os
+import sys
+import stat
+import time
+import subprocess
+ 
+ 
+def daemonize(stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
+    """ 
+    do the UNIX double-fork magic to set daemonize
+    """  
+    try:  
+        pid = os.fork()  
+        if pid > 0:  
+            # exit first parent  
+            sys.exit(0)  
+    except OSError, e:  
+        sys.stderr.write("fork #1 failed: %d (%s)\n" % (e.errno, e.strerror))  
+        sys.exit(1)  
+ 
+    # decouple from parent environment  
+    os.chdir("/")  
+    os.setsid()  
+    os.umask(0)  
+ 
+    # do second fork  
+    try:  
+        pid = os.fork()  
+        if pid > 0:  
+            # exit from second parent  
+            sys.exit(0)  
+    except OSError, e:  
+        sys.stderr.write("fork #2 failed: %d (%s)\n" % (e.errno, e.strerror))  
+        sys.exit(1)  
+ 
+    # redirect standard file descriptors  
+    sys.stdout.flush()  
+    sys.stderr.flush()  
+    si = file(stdin, 'r')  
+    so = file(stdout, 'a+')  
+    se = file(stderr, 'a+', 0)  
+    os.dup2(si.fileno(), sys.stdin.fileno())  
+    os.dup2(so.fileno(), sys.stdout.fileno())  
+    if type(sys.stderr) is file:  
+        os.dup2(se.fileno(), sys.stderr.fileno())  
+ 
+ 
+def start():
+    # init_db()
+    stderr = '/tmp/platform_daemon.log'
+    daemonize(stderr=stderr)
+ 
+    daemon_list = (
+        "/opt/platform/auto",
+        "/opt/platform/torport-start",
+        "/opt/platform/tform",
+        "/opt/platform/elc",
+    )
+ 
+    for cmd in daemon_list:
+        if not os.access(cmd, os.X_OK):
+            # mode:755
+            os.chmod(cmd, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP |
+                     stat.S_IROTH | stat.S_IXOTH)
+ 
+        count = "ps -ef | grep %s | grep 'bin/' | grep -v 'grep' | wc -l" % cmd
+        process = subprocess.Popen(count, stdin=None, stdout=subprocess.PIPE,
+                                   stderr=None, shell=True)
+        cnt = process.stdout.read()
+        if not int(cnt):
+            subprocess.Popen(cmd, stdin=None, stdout=None, stderr=None)
+        
+        time.sleep(1)
+ 
+ 
+def stop():
+    count = "ps -ef | grep 'platform' | grep 'bin/' | grep -v 'grep' | wc -l"
+    process = subprocess.Popen(count, stdin=None, stdout=subprocess.PIPE,
+                               stderr=None, shell=True)
+    cnt = process.stdout.read()
+    if int(cnt):
+        cmd = "ps -ef | grep 'platform' | grep 'bin/' | grep -v 'grep' | " \
+              "kill -9 `awk '{print $2}'`"
+        subprocess.Popen(cmd, stdin=None, stdout=None, stderr=None, shell=True)
+        
+    # print "All the platform daemons have been stopped."
+ 
+ 
+if __name__ == "__main__":
+    if len(sys.argv) == 1:
+        start()
+    elif len(sys.argv) == 2:
+        if 'start' == sys.argv[1]:
+            start()
+        elif 'stop' == sys.argv[1]:
+            stop()
+        elif 'restart' == sys.argv[1]:
+            stop()
+            start()
+        else: 
+            print 'unknown command' 
+            sys.exit(1)
+    else:
+        print 'usage: %s [start|stop|restart]' % sys.argv[0]
+        sys.exit(2)
+ 
+    sys.exit(0)
+
+
+
+参考：
+
+1 http://www.jb51.net/article/102261.htm
+
+2 http://www.tuicool.com/articles/2ANbym
+
+3 http://blog.csdn.net/tao_627/article/details/49532021

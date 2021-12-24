@@ -1,0 +1,514 @@
+.
+├── 0.MySQL脚本
+│   ├── MySQL安装脚本（latest）.md
+│   ├── mysql-toolkit-sql.md
+│   ├── 几个循环，用来造数据.md
+│   ├── 查看存储过程定义的权限.md
+│   └── 统计表大小.md
+├── 0.大纲
+│   ├── MySQL课程计划查询.md
+│   ├── 优化班大纲.md
+│   └── 实战班大纲.md
+├── 01.知识图谱 since May,2020.md
+├── 1.MySQL基础
+│   ├── 02.初识MySQL.md
+│   ├── 03.MySQL特点.md
+│   ├── 04.常见MySQL启动失败的故障分析.md
+│   ├── 05.权限.md
+│   ├── 06.MySQL数据对象.md
+│   ├── 07.MySQL 字符集.md
+│   ├── 08.数据类型、与Oracle数据类型的区别.md
+│   ├── 09.实验：类型隐式转换.md
+│   ├── 10.临时变量潜在的隐式转换风险.md
+│   ├── MySQL中varchar最大长度是多少？.md
+│   ├── MySQL学习路线指南.md
+│   └── MySQL里程碑.md
+├── 2.MySQL备份
+│   ├── 01.备份形式.md
+│   ├── 02.关于flush table with read lock.md
+│   ├── 03.表空间传输.md
+│   ├── 04.分区和子表交换.md
+│   ├── 05.备份策略.md
+│   ├── binlog备份
+│   │   ├── 0.binlog.md
+│   │   ├── 1.mysql binlog 实现增量备份&恢复.md
+│   │   ├── 2.binlog server的搭建及管理注意事项.md
+│   │   ├── 3.binlog的其他知识和概念.md
+│   │   ├── 实验：将数据库实例备份并恢复到新实例，重跑备份后产生的binlog.md
+│   │   └── 实验：恢复全备份到新实例再重做binlog到删除前.md
+│   ├── 物理备份
+│   │   ├── MySQL Clone plugin(8.0)
+│   │   │   ├── MySQL Clone plugin(8.0).md
+│   │   │   ├── 剪辑：MySQL Clone Plugin 实现用SQL进行备份.md
+│   │   │   ├── 实战 MySQL 8.0.17 Clone Plugin.md
+│   │   │   └── 实验：通过clone plugin进行本地克隆和远程克隆.md
+│   │   ├── MySQLBackup.md
+│   │   ├── README.md
+│   │   └── Xtrabackup
+│   │       ├── 01.Xtrabackup工作原理、MySQL_CR原理.md
+│   │       ├── 02.xtrabackup 2.4 备份流程.md
+│   │       ├── 03.xtrabackup全库备份&全量恢复.md
+│   │       ├── 04.使用xtrabackup实现远程备份.md
+│   │       ├── 05.对xtrabackup备份加密及解密.md
+│   │       ├── 06.-xtrabackup全库备份&单表恢复.md
+│   │       ├── 07.xtrabackup 2.4 增量备份和恢复.md
+│   │       ├── 08.xtrabackup 8.0 备份流程.md
+│   │       ├── 09.xtrabackup 8.0 增量备份和恢复.md
+│   │       ├── 10.验证xtrabackup备份的有效性.md
+│   │       └── README.md
+│   └── 逻辑备份
+│       ├── README.md
+│       ├── mydumper
+│       │   └── mydumper.md
+│       ├── mysqldump
+│       │   ├── 1.mysqldump命令.md
+│       │   ├── 2.mysqldump备份过程.md
+│       │   ├── 3.如何拿到一致性备份.md
+│       │   ├── 4.备份期间究竟能不能做DDL？.md
+│       │   ├── 5.备份非InnoDB表，是在mysqldump进行的哪一个过程发生的？.md
+│       │   ├── 6.mysqldump需要什么样的权限.md
+│       │   ├── mysqldump一致性备份.md
+│       │   └── mysqldump参数参考.md
+│       └── mysqlpump
+│           └── mypumper.md
+├── 3.MySQL复制
+│   ├── 1.复制原理及应用场景
+│   │   ├── 0.复制应用场景.md
+│   │   ├── 1.复制分类和（异步）复制原理.md
+│   │   ├── 2.Binlog简介.md
+│   │   ├── 3.GTID简介.md
+│   │   └── 4.MySQL5.7 & 8.0对复制的增强.md
+│   ├── 2.异步复制、半同步复制、增强半同步复制原理
+│   │   ├── 01. 异步复制原理.md
+│   │   ├── 02. 半同步复制原理( after commit ).md
+│   │   ├── 03. 增强半同步复制原理( after sync ).md
+│   │   ├── 04.了解增强半同步的各参数意义.md
+│   │   ├── 05.半同步rpl_semi_sync_master_wait_no_slave参数研究实验.md
+│   │   ├── 06.半同步和增强半同步的缺点，如何保证主从的数据是一致的？.md
+│   │   ├── 07.剪辑：半同步及增强半同步1.md
+│   │   ├── 08.剪辑：半同步及增强半同步2.md
+│   │   ├── 09.剪辑：半同步及增强半同步3.md
+│   │   └── 10.剪辑：半同步及增强半同步4.md
+│   ├── 3.多源复制
+│   │   ├── 多源复制.md
+│   │   └── 实验：多源复制的初阶实验.md
+│   ├── 4.并行复制MTS：减少复制延迟
+│   │   ├── 01.并行复制(MTS)原理（完整版）.md
+│   │   ├── 02.并行复制(MTS)配置&MTS优化.md
+│   │   ├── 03.writeset.md
+│   │   ├── 5.WL#6314 MTS Prepared transactions slave parallel applier.md
+│   │   ├── 5.WL#6813.md
+│   │   ├── 5.WL#7165 MTS Optimizing MTS scheduling by increasing the parallelization window on master.md
+│   │   ├── MySQL5.6并行复制原理.md
+│   │   ├── 剪辑：MySQL 5.7并行复制中并行的真正含义.md
+│   │   └── 剪辑：MySQL并发复制系列一：binlog组提交.md
+│   ├── 5.复制过滤、延迟复制及复制定位
+│   │   ├── 1.延迟复制.md
+│   │   ├── 2.复制过滤，只复制部分表.md
+│   │   ├── 3.只复制到特定pos位置.md
+│   │   └── 实验：一个重要注意点：跨库DDL+复制filter 不能工作。.md
+│   ├── 6.复制中常见故障及处理
+│   │   ├── 01.从库Crash后复制中断的解决方法.md
+│   │   ├── 02.复制出错导致中断的解决方法（NoGITD & GTID）.md
+│   │   ├── 03.复制管理：1.复制架构的调整.md
+│   │   ├── 04.复制管理：2.在线最小影响的添加新的从库.md
+│   │   ├── 05.复制管理：3.主从复制延迟排查及处理.md
+│   │   ├── 06.复制管理：4.主从复制一致性校验及修复.md
+│   │   ├── 07.复制管理：5.利用主从架构实现数据快速闪回.md
+│   │   ├── 10.通过binlog快速恢复：1.利用sql_thread快速应用binlog的方案.md
+│   │   ├── 11.通过binlog快速恢复：2.新master发送后sql_thread快速应用binlog.md
+│   │   ├── 12.通过binlog快速恢复：3.伪装master更名relay-log进行sql_thread应用.md
+│   │   ├── 一则主从同步延迟处理.md
+│   │   └── 剪辑：跳过复制错误.md
+│   ├── 7.复制架构使用上的建议
+│   │   ├── 1.-如何规划读写分离使用？.md
+│   │   ├── 2.-复制是不是可以跨IDC部署及使用中有什么要注意的？.md
+│   │   └── 3.-复制架构故障切换时如何挑选最合适的新主库.md
+│   └── 8.复制搭建实验
+│       ├── 1.实验：搭建异步复制环境.md
+│       ├── 2.实验：GTID环境利用xtrabackup搭建一个增强半同步从库.md
+│       ├── 3.实验：GTID环境利用mydumper搭建从库.md
+│       ├── 4.实验：GTID环境利用mysqldump搭建从库.md
+│       ├── 5.1.实验：搭建级联复制（M-S-S）架构的主从.md
+│       ├── 5.2.实验：非GTID 一主多从变级联架构.md
+│       ├── 5.3.实验：GTID 一主多从变级联架构.md
+│       ├── 5.4.实验：非GTID 级联复制架构变为一主多从（M-nS）.md
+│       ├── README.md
+│       ├── 剪辑：Xtrabackup在线热备搭建基于GTID模式主从架构详解.md
+│       └── 造数据.md
+├── 4.MySQL高可用
+│   ├── 1.MHA
+│   │   ├── 1. MHA搭建、配置、流程.md
+│   │   ├── 2. MHA 切换原理.md
+│   │   ├── 3. MHA使用注意事项.md
+│   │   ├── 【mysql】Mysql MHA(mha4mysql-0.58)-centos7&mysql5.7.md
+│   │   ├── 剪辑：MySQL MHA FailOver后，原Master节点自动以Slave角色加入集群的研究与实现.md
+│   │   ├── 剪辑：MySQL Master High Available 理论篇.md
+│   │   └── 剪辑：MySQL高可用架构MHA原理与搭建.md
+│   ├── 2.Xenon
+│   │   ├── 1. Xenon简介和原理.md
+│   │   ├── 2. 实验：搭建Xenon on 5.7.30.md
+│   │   ├── 3.Xenon使用注意事项.md
+│   │   └── 青云Xenon管理mysql主从复制测试.md
+│   ├── 3.MySQL InnoDB Cluster
+│   │   ├── 1.InnoDB Cluster 完整版.md
+│   │   ├── MIC  MGR 实验
+│   │   │   ├── 主从复制架构直接转换MGR(manual).md
+│   │   │   ├── 主从复制架构直接转换MGR(mysql_shell).md
+│   │   │   ├── 主从复制直接转换MGR_5.7验证试验.md
+│   │   │   ├── 实验：MGR_using_MySQLShell_on_MySQL8.0.20.md
+│   │   │   ├── 实验：MySQLShell@MySQL8.0.19 创建MGR.md
+│   │   │   └── 实验：手动搭建MGR via 5.7 single primary.md
+│   │   ├── 剪辑：MySQL Group Replication冲突检测机制再剖析.md
+│   │   └── 剪辑：MySQL事务在MGR中的漫游记—路线图.md
+│   ├── 4.ProxySQL
+│   │   ├── 1. ProxySQL原理及使用注意事项.md
+│   │   ├── 2. 实验：ProxySQL+半同步复制.md
+│   │   └── 3.ProxySQL本身的高可用.md
+│   ├── 5.MySQL InnoDB ReplicaSet高可用
+│   │   ├── MySQL InnoDB ReplicaSet高可用.md
+│   │   └── 通过mysh创建ReplicaSet，了解mysh工作原理.md
+│   ├── 6.Orchestrator
+│   │   ├── 0.Orchestrator 入门到劝退.md
+│   │   ├── 1. Orc简介和原理.md
+│   │   ├── 2. 实验：搭建Orc.md
+│   │   └── 3.Orc使用注意事项.md
+│   ├── 7.PXC,Percona XtraDB Cluster
+│   │   ├── 1.PXC简介和原理.md
+│   │   ├── 2.实验：搭建PXC.md
+│   │   ├── 3.PXC的注意事项.md
+│   │   ├── 3.如何利用主从复制特性更小代价添加PXC新节点.md
+│   │   ├── 4.文档：PXCMGR原理对比.md
+│   │   ├── 5.文档：PXC环境搭建(ZST).md
+│   │   └── Raft协议
+│   │       ├── 1.解读Raft（一 算法基础）.md
+│   │       ├── 2.解读Raft（二 选举和日志复制）.md
+│   │       ├── 3.解读Raft（三 安全性）.md
+│   │       └── 4.解读Raft（四 成员变更）.md
+│   ├── 9.高可用方案总结
+│   │   ├── 1.中小项目高可用使用建议.md
+│   │   ├── 2.金融项目高可用选型.md
+│   │   └── 3.大型项目高可用选型.md
+│   ├── README.md
+├── 5.MySQL体系结构
+│   ├── 1.MySQL 关键参数.md
+│   ├── 1.MySQL体系结构
+│   │   ├── 1.连接层及timeout参数
+│   │   │   └── 1.连接层及timeout参数.md
+│   │   ├── 2.server层服务层SQL层
+│   │   │   ├── 1.鉴权.md
+│   │   │   ├── 2.参数修改持久化.md
+│   │   │   ├── 3.SQL MODE.md
+│   │   │   ├── 4.SQL 执行过程 及(8.0) ICP 特性.md
+│   │   │   ├── 5.事务提交流程.md
+│   │   │   ├── 6.MySQL Crash Recovery 流程.md
+│   │   │   ├── README.md
+│   │   │   ├── 剪辑：MySQL 中Redo与Binlog顺序一致性问题.md
+│   │   │   ├── 剪辑：SQL中的where条件，在数据库中提取与应用浅析.md
+│   │   │   └── 日志模式区别.md
+│   │   ├── 3.存储层（文件目录结构）.md
+│   │   ├── 4.元数据、数据字典、动态性能视图
+│   │   │   ├── 1.performance_schema(PFS,P_S)
+│   │   │   │   ├── performance_schema(PFS,P_S).md
+│   │   │   │   └── 剪辑：Performance Schema
+│   │   │   │       ├── 1.Performance Schema使用简介(一).md
+│   │   │   │       ├── 2.初相识｜performance_schema全方位介绍.md
+│   │   │   │       ├── 3.配置详解  performance_schema全方位介绍.md
+│   │   │   │       ├── 4.事件记录  performance_schema全方位介绍.md
+│   │   │   │       ├── 5.事件统计  performance_schema全方位介绍.md
+│   │   │   │       ├── 6.数据库对象事件与属性统计  performance_schema全方位介绍.md
+│   │   │   │       ├── 7.复制状态与变量记录表  performance_schema全方位介绍.md
+│   │   │   │       └── 8.应用示例荟萃  performance_schema全方位介绍.md
+│   │   │   ├── 1.pt-tools.md
+│   │   │   ├── 2.sys schema
+│   │   │   │   ├── sys schema.md
+│   │   │   │   └── 剪辑：sys 系统库
+│   │   │   │       ├── 01.初相识  全方位认识 sys 系统库.md
+│   │   │   │       ├── 02.配置表  全方位认识 sys 系统库.md
+│   │   │   │       ├── 03.按 host 分组统计视图  全方位认识 sys 系统库.md
+│   │   │   │       ├── 04.按 user 分组统计视图全方位认识 sys 系统库.md
+│   │   │   │       ├── 05.按 file 分组统计视图  全方位认识 sys 系统库.md
+│   │   │   │       ├── 06.内存分配统计视图  全方位认识 sys 系统库.md
+│   │   │   │       ├── 07.等待事件统计视图  全方位认识 sys 系统库.md
+│   │   │   │       ├── 08.会话和锁信息查询视图  全方位认识 sys 系统库.md
+│   │   │   │       ├── 09.统计信息查询视图  全方位认识 sys 系统库.md
+│   │   │   │       ├── 10.语句效率统计视图  全方位认识 sys 系统库.md
+│   │   │   │       ├── 11.其他混杂视图  全方位认识 sys 系统库.md
+│   │   │   │       ├── 12.用于修改配置的存储过程  全方位认识 sys 系统库.md
+│   │   │   │       ├── 13.用于查看配置的存储过程  全方位认识 sys 系统库.md
+│   │   │   │       ├── 14.其他混杂存储过程  全方位认识 sys 系统库.md
+│   │   │   ├── 3.information_schema
+│   │   │   │   └── 剪辑：information_schema
+│   │   │   │       ├── 1.初相识  全方位认识 information_schema.md
+│   │   │   │       ├── 2.Server层统计信息字典表  全方位认识 information_schema.md
+│   │   │   │       ├── 3.Server层表级别对象字典表  全方位认识 information_schema.md
+│   │   │   │       ├── 4.Server 层混杂信息字典表  全方位认识 information_schema.md
+│   │   │   │       ├── 5.InnoDB 层系统字典表  全方位认识 information_schema.md
+│   │   │   │       ├── 6.InnoDB 层锁、事务、统计信息字典表  全方位认识 information_schema.md
+│   │   │   │       ├── 7.InnoDB 层全文索引字典表  全方位认识 information_schema.md
+│   │   │   │       └── 8.InnoDB 层压缩相关字典表  全方位认识 information_schema.md
+│   │   │   └── README.md
+│   │   └── README.md
+│   ├── 2.InnoDB引擎体系结构
+│   │   ├── 0.InnoDB引擎体系结构.md
+│   │   ├── 1.InnoDB 内存结构
+│   │   │   ├── 0.InnoDB 内存结构.md
+│   │   │   ├── 1.Buffer Pool.md
+│   │   │   ├── 2.Redo Log Buffer.md
+│   │   │   ├── 3.change buffer(insert buffer).md
+│   │   │   ├── 4.Adaptive Hash Index,AHI.md
+│   │   │   ├── 5.Double write.md
+│   │   │   ├── innodb_buffer_pool_instance.md
+│   │   │   ├── innodb_buffer_pool_instances 是如何影响性能的.md
+│   │   │   ├── show engine innodb mutex 监控输出结果解读.md
+│   │   │   └── 剪辑Change Buffer.md
+│   │   ├── 2.InnoDB 存储结构
+│   │   │   ├── 0.InnoDB 存储结构.md
+│   │   │   ├── 1.系统表空间 ibdata.md
+│   │   │   ├── 2.通用表空间 .ibd.md
+│   │   │   ├── 3.独立表空间 .ibd 和 共享表空间.md
+│   │   │   ├── 4.Undo 表空间(全局Undo会话Undo .ibu).md
+│   │   │   ├── 5.临时表空间(全局ibtmp1会话 .ibt).md
+│   │   │   ├── 6.Redo Log File.md
+│   │   │   ├── 7.Buffer Pool Dump File.md
+│   │   │   ├── 8.Innodb Status File.md
+│   │   │   ├── 9.Double Write File(8.0.20).md
+│   │   │   ├── A.全文索引ftsibd.md
+│   │   │   ├── innblock 工具 InnoDB page观察利器.md
+│   │   │   ├── mysql-toolkit-sql.md
+│   │   │   └── 表空间的碎片、回收和迁移.md
+│   │   ├── 3.存储对象数据结构
+│   │   │   ├── 0.基础概念.md
+│   │   │   ├── 1.系统表空间拓扑.md
+│   │   │   ├── 2.Index Page拓扑.md
+│   │   │   ├── 3.InnoDB DataPage 数据结构和DML的动作、空间重用原则.md
+│   │   │   ├── 4.InnoDB 行记录结构、行格式和行溢出.md
+│   │   │   ├── 5.InnoDB数据字典.md
+│   │   │   ├── 剪辑：MySQL数据页.md
+│   │   │   ├── 实验：索引层高及可存储数据量.md
+│   │   │   ├── 待做实验：InnoDB表的结构分析.md
+│   │   │   └── 待整理的数据结构
+│   │   │       ├── 1.md
+│   │   │       ├── InnoDB Data Page 结构.md
+│   │   ├── 4.MVCC，多版本并发控制
+│   │   │   ├── 1.MVCC.md
+│   │   │   ├── 2.Redo.md
+│   │   │   ├── 3.undo.md
+│   │   │   ├── 4.redo+undo协同，以及两阶段提交.md
+│   │   │   ├── 5.MTR.md
+│   │   │   └── mysql-innoDB-多版本并发控制(MVCC).md
+│   │   ├── 5.InnoDB线程
+│   │   │   ├── 0.InnoDB线程.md
+│   │   │   ├── 1.主线程 master thread.md
+│   │   │   ├── 2.checkpoint.md
+│   │   │   ├── 3.flush线程（page cleaner线程）.md
+│   │   │   └── 4.purge 线程.md
+│   │   ├── 6.crash recovery
+│   │   │   └── 0.crash recovery.md
+│   │   ├── 7.InnoDB重点参数和性能监控（关注点）
+│   │   │   ├── 0.提升InnoDB性能，要配置好这几个关键参数.md
+│   │   │   └── 1.SHOW INNODB STATUS 探秘  iMySQL .md
+│   │   └── 剪辑：InnoDB存储引擎.md
+│   ├── 2.MySQL 关键状态.md
+│   ├── MySQL主要参数的说明以及一般建议.doc.md
+│   ├── MySQL内存体系架构及参数总结.md
+│   └── innblock工具
+│       ├── innblock
+│       └── innblock 工具 InnoDB page观察利器.md
+├── 6.MySQL索引
+│   ├── 1.MySQL索引基础
+│   │   ├── 00.索引基础.md
+│   │   ├── 01.折半查找(二分查找).md
+│   │   ├── 02.二叉树 binary tree.md
+│   │   ├── 03.平衡树，平衡二叉树.md
+│   │   ├── 04.B树和B+树.md
+│   │   ├── 05.哈希索引(Hash).md
+│   │   ├── 06.聚集索引(Clustered).md
+│   │   ├── 07.InnoDB聚集索引和MyISAM索引对比.md
+│   │   ├── 08.主键索引(Primary key) 和辅助索引.md
+│   │   ├── 09.唯一索引.md
+│   │   ├── 10.覆盖索引(Covering)、回表读.md
+│   │   ├── 11.联合索引、ICP.md
+│   │   ├── 12.部分索引、前缀索引(Prefix).md
+│   │   ├── 13.外键、全文索引.md
+│   │   ├── 14.倒序索引.md
+│   │   ├── 15.不可见索引.md
+│   │   ├── 16.表达式索引、函数索引.md
+│   │   ├── 17.跳跃索引扫描.md
+│   │   ├── 18.索引并行读.md
+│   │   ├── 19.多值索引.md
+│   │   ├── 20.直方图（存疑，暂停）.md
+│   │   └── 剪辑：MySQL8.0之跳跃范围扫描.md
+│   └── 2.MySQL索引使用和管理
+│       ├── 0.MySQL索引使用和管理.md
+│       ├── 1.案例：索引统计有误，导致执行计划出问题.md
+│       ├── 1.索引统计和统计信息持久化.md
+│       ├── 2.优秀索引：三星索引理论.md
+│       ├── 3.索引对DML请求效率的影响.md
+│       ├── 4.索引低效或索引失效(索引被弃用).md
+│       ├── 5.索引合并(index merge).md
+│       ├── 6.NULL 对性能的影响.md
+│       ├── 7.创建索引的必要性.md
+│       ├── 8.索引应用优化案例.md
+│       ├── 9.执行计划中key_len的解读，有啥用？.md
+│       ├── A.索引建议.md
+│       ├── B.Hint.md
+│       ├── C.索引实验.md
+│       ├── MySQL Using intersect交集算法.md
+│       ├── 执行计划中索引的使用顺序.md
+│       └── 相似的SQL执行计划key_len为什么不同.md
+├── 7.MySQL事务
+│   ├── 0.事务.md
+│   ├── 1.1.事务隔离级别.md
+│   ├── 1.2.READ COMMITTED.md
+│   ├── 1.3.REPEATABLE READ.md
+│   ├── 1.4.serializable.md
+│   ├── 2.1.InnoDB读和read view快照.md
+│   ├── 2.2.for update的作用和用法.md
+│   ├── 2.3.InnoDB如何解决幻读的.md
+│   ├── 2.4.InnoDB 事务模式和切换规则.md
+│   ├── 2.5.InnoDB 半一致性读 (semi-consitent read).md
+│   ├── 4.事务优化原则.md
+│   ├── Untitled.md
+│   ├── 剪辑：MySQL事务隔离级别及SET TRANSACTION影响事务.md
+│   ├── 剪辑：事务隔离级别.md
+│   └── 隔离级别实验.md
+├── 8.MySQL锁
+│   ├── 1.MySQL 锁（完整版）.md
+│   ├── 2.InnoDB行锁.md
+│   ├── 3.死锁及案例.md
+│   ├── 4.案例集：理解行锁在不同隔离级别、不同索引类型时的加锁方式及影响
+│   │   ├── 01.场景一：主键条件，相同条件上X锁后，另一会话上S锁。.md
+│   │   ├── 02.场景二：主键条件，相同条件上S锁后，另一会话上X锁。.md
+│   │   ├── 03.场景三：主键条件，相同条件，上X锁后，另一会话不上锁直接select。.md
+│   │   ├── 04.场景四：无索引列条件上S锁，条件不同，无符合两会话条件的数据，尝试上X锁。.md
+│   │   ├── 05.场景五：普通索引列条件上S锁，条件不同，无符合两会话条件的数据，尝试上X锁。.md
+│   │   ├── 06.场景六：普通索引列条件，上S锁，再向表内尝试插入大于记录已有最大值的记录。.md
+│   │   ├── 07.场景七：会话一对无索引列做不存在记录查询，上S锁；会话二尝试对存在数据的主键条件上X锁。.md
+│   │   ├── 08.场景八：普通索引条件相同，会话一联合无索引列条件上X锁，会话二联合无索引列另一条件尝试上X锁。.md
+│   │   ├── 09.场景九：普通索引条件不同，会话一联合无索引列条件上X锁，会话二联合无索引列另一条件尝试上X锁。.md
+│   │   ├── 10.场景十：会话一使用辅助索引和无索引列条件上X锁，会话二使用主键和无索引列条件上X锁，两会话条件结果记录重合。.md
+│   │   ├── 11.场景十一：使用辅助索引进行范围条件限定，更新无索引列；会话二尝试通过不存在的主键数据条件上X锁。.md
+│   │   ├── 12.场景十二：两个会话使用相同的主键条件，对不存在的记录上X锁。.md
+│   │   ├── 13.场景十三：使用辅助索引进行范围条件限定，更新无索引列；会话二向表中插入数据，数据处于会话一的范围锁的范围中。.md
+│   │   ├── 14.场景十四：使用辅助索引进行范围条件限定，更新无索引列；会话二向表中插入数据，数据处于会话一锁定辅助索引列范围的边界。.md
+│   │   ├── 15.场景十五：使用主键进行范围条件限定，另一会话向表中插入数据，数据主键列值在前面范围条件内。.md
+│   │   ├── 16.场景十六：使用主键进行范围条件限定加X锁，另一会话对范围条件后的第一个不满足条件记录进行delete。.md
+│   │   ├── 17.场景十七：RC下，主键等值条件对无索引列更新，另一会话尝试对前会话主键条件前一值做=范围加X锁.md
+│   │   ├── 18.场景十八：RC下，主键范围加X锁，另一会话通过主键范围后的第一个不满足条件，对无索引列更新。.md
+│   │   ├── 19.场景十九：使用主键等值条件，将主键值更新到大于当前最大值，第二个会话对辅助索引上X锁，满足辅助索引条件的记录与第一个会话重合。.md
+│   │   ├── 20.场景二十：两个会话分别向表中插入数据，主键列值都处于当前主键列最大值与第二大值之间，且不存在重复。.md
+│   │   ├── 21.场景二十一：对不存在记录的主键条件上X锁，再使用相同的主键值向表内插入数据。（场景二十二的反序）.md
+│   │   ├── 22.场景二十二：向表内插入数据，再使用相同的主键值条件上X锁。(场景二十一的反序).md
+│   │   ├── 23.场景二十三：辅助索引等值条件加X锁，再向表内插入数据，数据中辅助索引列值为前一条件值的下一值。.md
+│   │   ├── 24.场景二十四：通过主键等值条件更新辅助索引列数据，再通过辅助索引更新值的下一值作为条件上X锁，该辅助索引条件值并不存在。（场景二十五的反序）.md
+│   │   ├── 25.场景二十五：通过不存在的辅助索引条件等值上X锁，再通过主键条件更新辅助索引列值（场景二十四的反序）.md
+│   │   ├── 26.补充场景一：通过主键等值条件更新辅助索引列数据。注意辅助索引列上锁的变化过程.md
+│   │   ├── 27.补充场景二：主键上范围条件加锁，大于等于，唯一索引的大于等于范围条件加锁时，对等值条件加rec_not_gap，再对范围加ordinary.md
+│   │   ├── 28.补充场景三：主键上范围条件加锁，小于等于：唯一索引的小于等于范围条件加锁时，8.0.18前也会对第一个不满足条件的记录加锁.md
+│   │   ├── 29.补充场景四：无索引加锁，对所有物理记录（聚集索引）加 lock_ordinarylock_X，对supremum记录加 lock_ordinarylock_X.md
+│   │   └── README.md
+│   ├── 实验集：范围条件下的锁情况.md
+│   └── 锁剪辑
+│       ├── 剪辑：MYSQL锁详解.md
+│       ├── 剪辑：mysql 中的锁结构.md
+│       ├── 剪辑：深入理解MYSQL的MDL元数据锁.md
+│       └── 剪辑：深入理解SELECT ... LOCK IN SHARE MODE和SELECT ... FOR UPDATE.md
+├── 9.MySQL性能优化
+│   ├── 0.性能优化总览
+│   │   ├── 01.MySQL优化：知识体系总览.md
+│   │   ├── 02.MySQL性能瓶颈原因.md
+│   │   ├── 03.业务层面优化及性能提升利器MRR、BKA、ICP.md
+│   │   ├── 04.explain执行计划解读.md
+│   │   ├── 05.Optimizer trace 进行优化器跟踪.md
+│   │   ├── 06.MySQL线程及状态.md
+│   │   ├── 07.SLOW SQL管理.md
+│   │   ├── 08.SQL审核工具：soar.md
+│   │   ├── 09.利用profiling定位SQL性能瓶颈.md
+│   │   ├── MySQL 的 MRR 到底是什么.md
+│   │   ├── MySQL解惑——GROUP BY隐式排序.md
+│   │   ├── README.md
+│   │   ├── Untitled.md
+│   │   ├── 关于ICP、MRR、BKA等特性  .md
+│   │   ├── 瓶颈分析及优化案例.md
+│   │   └── 面试题精选.md
+│   ├── 1.性能瓶颈排查及关键指标监控
+│   │   ├── 00.硬件及系统层监控.md
+│   │   ├── 01.MySQL关键监控指标.md
+│   │   ├── 02.MySQL关键状态监控.md
+│   │   ├── 03.InnoDB Buffer Pool监控.md
+│   │   ├── 04.锁监控.md
+│   │   ├── 05.使用sys schema监控.md
+│   │   ├── 99.性能排查剪辑
+│   │   │   ├── 剪辑：MYSQL之HANDLER_READ_详细讲解.md
+│   │   │   ├── 剪辑：在MySQL 5.7下排查内存泄露和OOM问题全过程.md
+│   │   │   ├── 剪辑：实例解析MySQL性能瓶颈排查定位.md
+│   │   │   ├── 剪辑：找到MySQL服务器发生SWAP罪魁祸首 .md
+│   │   │   ├── 剪辑：是什么导致MySQL数据库服务器磁盘IO高？.md
+│   │   │   └── 是谁，把InnoDB表上的DML搞慢的？.md
+│   │   ├── MySQL层监控.md
+│   │   ├── MySQL性能瓶颈定位.md
+│   │   └── MySQL监控&性能瓶颈排查.md
+│   ├── 2.容量规划及性能测试
+│   │   ├── 1.性能基线和快照.md
+│   │   ├── 2.性能容量规划.md
+│   │   ├── 3.压测.md
+│   │   ├── 分享我的测试结果模板.md
+│   │   ├── 测试结果画曲线图-模板.xlsx
+│   │   └── 老叶倡议：MySQL压力测试基准值.md
+│   ├── 3.分库分表及中间件探索
+│   │   ├── 1.分库分表.md
+│   │   ├── 2.中间件产品简介.md
+│   │   └── 表分区.md
+│   ├── 99.常用分析工具
+│   │   ├── NUMA.md
+│   │   ├── blackhole.sh.md
+│   │   ├── dstat.md
+│   │   ├── free.md
+│   │   ├── iotop.md
+│   │   ├── mpstat.md
+│   │   ├── perf.md
+│   │   └── vmstat.md
+│   └── 性能优化剪辑
+│       ├── mysql中的analyze与optimize表.md
+│       ├── 由optimizer_switch所引起的诡异问题.md
+│       └── 细说ANALYZE TABLE.md
+├── A.MySQL架构规范
+│   ├── 1.OS部署规范.md
+│   ├── 2.最大化利用CPU资源.md
+│   ├── 3.MySQL运维规范.md
+│   ├── 4.开发环境建议及开发规范.md
+│   ├── 5.业务相关建议.md
+│   ├── 6.数据安全.md
+│   ├── Linux 环境检查.md
+│   ├── README.md
+│   ├── SQL审核
+│   │   ├── 1.SQL审核.md
+│   │   ├── 2.连接池.md
+│   │   └── Soar.md
+│   ├── Untitled.md
+├── B.MySQL 8.0 版本探索
+│   ├── 8.0中InnoDB新特性.md
+│   ├── 8.0新特性.md
+│   ├── Untitled.md
+│   ├── auto-inc 持久化.md
+│   ├── hash join.md
+│   └── 各版本主要特点.md
+├── C.其他运维案例
+│   ├── DBA登入服务器后应该先关注啥.md
+│   └── MySQL误删数据救命指南.md
+├── D.DTS及数据迁移
+│   └── DTS.md
+├── E.运维相关
+│   ├── 1.利用query rewrite plugin 做应急的SQL优化和降级.md
+│   ├── 2.too many connection 处理 & 8.0解决方案.md
+│   ├── 3.利用strace分析数据库的运行原理.md
+│   ├── 4.用pstack抓取hang住的连接或MySQL信息.md
+│   ├── 5.通过案例，学习perf识别MySQL性能瓶颈点.md
+│   ├── 6.MySQL反应慢的排查思路.md
+│   └── 7.遇到数据库crash的分析思路.md
+├── X.整理好的剪辑
+│   └── MySQL8.0的variables_info表.md
+└── tree.log
+
+75 directories, 472 files
