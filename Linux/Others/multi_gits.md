@@ -58,3 +58,45 @@ git删除历史版本，保留当前状态。
 
 
 ```
+
+
+
+
+``` 2022
+[core]
+	repositoryformatversion = 0
+	filemode = false
+	bare = false
+	logallrefupdates = true
+	symlinks = false
+	ignorecase = true
+
+[core]
+        repositoryformatversion = 0
+        filemode = false
+        bare = false
+        logallrefupdates = true
+        symlinks = false
+        ignorecase = true
+[remote "origin"]
+        url = https://gitee.com/kkong/kk_mysql.git
+        fetch = +refs/heads/*:refs/remotes/gitee/*
+        url = https://github.com/jolleykong/kk_mysql.git
+[branch "master"]
+        remote = origin
+        merge = refs/heads/master
+[remote "github"]
+        url = https://github.com/jolleykong/kk_mysql.git
+        fetch = +refs/heads/*:refs/remotes/github/*
+        tagopt = --no-tags
+[remote "gitee"]
+        url = https://gitee.com/kkong/kk_mysql.git
+        fetch = +refs/heads/*:refs/remotes/gitee/*
+        tagopt = --no-tags
+[oh-my-zsh]
+        hide-dirty = 1
+        hide-status = 1
+[gui]
+        wmstate = normal
+        geometry = 2008x1063+305+381 451 486
+```
