@@ -64,16 +64,37 @@ import time
 import os
 from lib import common
 from conf import setting
+from dateutil import parser
+import pymongo
 # 用代码模拟博客系统
 
 flag = 1
 
+
+# 0 连接数据库
+def conn_mongo(ip,port=27017):
+    client = pymongo.MongoClient("mongodb://" + ip + ":" + str(port) + "/")
+    return client
+
+client = conn_mongo(setting.mongodb)
+db = client["hw"]
+
+# 获取当前格式化时间
+def getftime():
+    tm = time.time()
+    st = time.localtime(tm)
+    fm = time.strftime("%Y-%m-%d %H:%M:%S",st)
+    return fm
+
+
 # 0.load auth file.
 def get_authdict():
-    with open(setting.account_db,mode='r') as pwdfile:
-        lines = pwdfile.readlines()
-        authdict = { i.strip().split("|")[0] : i.strip().split("|")[1]  for i in lines }
-    return authdict
+    # db = client["hw"]
+    acc_dict = {}
+    result = db.account.find()
+    for account in result:
+        acc_dict[ account['username'] ] = account['pwd']
+    return acc_dict
 
 authdict = get_authdict()  # from get_authdict
 login_status = 0    # 默认登录标记为0，登录成功则值为用户名
@@ -125,12 +146,16 @@ def register():
                 password2 = input('password again :').strip()
 
                 if password == password2:
-                    # 将注册信息写入文件
-                    newuser = str(username)+'|'+str(password)+'\n'
-                    with open(setting.account_db,mode='a+') as pwdfile:
-                        pwdfile.write(newuser)
-                    print('注册成功！')
-                    print(f'你的用户名为：{username}')
+                    # 将注册信息写入account
+                    db.account.insert_one({
+                        "username":username,
+                        "pwd":password,
+                        "status":0,
+                        "createtm":parser.parse(getftime())
+                        }
+                    )
+
+                    print(f'注册成功！你的用户名为：{username}')
                     authdict = get_authdict()
                     return True
                 else:
@@ -138,8 +163,7 @@ def register():
                     return register()
             else:
                 print('密码长度在6~14字符之间。')
-                return register()
-                    
+                return register()       
         else:
             print('用户名只能包含数字和字母。')
             return register()
@@ -167,33 +191,55 @@ def article():
 
         # 选择直接写文章
         if choice == 1:
-            title = input('\n<创建新文章>'+'输入文章标题：').strip()+'.arc'
+            title = input('\n<创建新文章>'+'输入文章标题：').strip()
             if len(title) > 0:
-                # 这块没判断文章是否存在。 先耍懒了。直接覆盖吧。
-                filename = os.path.join(setting.articles_path,title)
-                with open(filename,mode='w') as new_article:
-                    new_article.write( input(f'输入{title}的正文内容：\n') )
+                # 这块没判断文章是否存在。 先耍懒了。
+                print(f'输入{title}的正文内容，（完成输入itsend）：\n')
+                # 实现换行输入
+                endstr = "itsend"
+                section = ""
+                for line in iter(input,endstr):
+                    section += line + '\n'
+                # 获取用户id，这块用对象方式实现其实更好。后续完善。
+                userid = db.account.find_one({"username":login_status},{"_id":1})
+                # 获取目前article最大_id ，实现自增
+                articleid = int(db.article.find({},{"_id":1}).sort("_id",-1).limit(1).next()['_id']) + 1
+                # 插入文档到数据库
+                db.article.insert_one({
+                    "_id":articleid,
+                    "article":{"title":title,
+                    "paragraph":section,
+                    "userid":userid,
+                    "createtm":parser.parse(getftime()),
+                    "is_daily":False,
+                    "comment_id":[]
+                    }
+                })
+
 
         # 选择导入md文件
         elif choice == 2:
             md_path = input('输入完整的md文件路径：').strip()
             if os.path.isfile(md_path):
                 # 直接获取文件名，如果有扩展名，那就只取文件名部分
-                title = md_path.split('/')[-1].split('.md')[0]+'.arc'
-                # 生成新的文件名用来归档
-                filename = os.path.join(setting.articles_path,title)
-
-                # 文件内容复制
-                imp_article = open(filename,mode='w')
-                source_md = open(md_path,mode='r')
-
-                for line in source_md:
-                    imp_article.write(line)
-
-                source_md.close()
-                imp_article.close()
+                title = md_path.split('/')[-1].split('.md')[0]
+                # 读取文件内容
+                with open(md_path,mode='r') as f:
+                    section = f.read()
+                # 写入数据库
+                userid = db.account.find_one({"username":login_status},{"_id":1})
+                articleid = int(db.article.find({},{"_id":1}).sort("_id",-1).limit(1).next()['_id']) + 1
+                db.article.insert_one({
+                    "_id":articleid,
+                    "article":{"title":title,
+                    "paragraph":section,
+                    "userid":userid,
+                    "createtm":parser.parse(getftime()),
+                    "is_daily":False,
+                    "comment_id":[]
+                    }
+                })
                 print('导入完成。（如果能看到这里且没有报错，那就是成功了~）')
-
 
         # 超出范围则继续要求选择。
         else:
@@ -224,46 +270,77 @@ def article():
 #         如果原文章下面没有评论区以及分割线，则增加这两行再附上评论，否则直接在评论区最下面追加。
 
 # 获取特定文章列表
-def get_file_list(path,filetype):
-    dir_list = os.listdir(path)
-    # 这一段可以做一下文章类型判断。 这里不判断了。
-    type = '.'+filetype.strip()
-    # 过滤掉非arc文件和dry文件，即：非文章文件和日记文件
-    file_list = [file for file in dir_list if type in file ]
-    return file_list
+def get_file_dict(filetype):
+    search = False
+    if filetype == 'dry':
+        search = True
+    result = db.article.find({"article.is_daily":search},{"_id":1,"article.title":1})
+    # print(result)
+    file_dict = {}
+    for i in result:
+        file_dict[ i['_id'] ] = i['article']['title']
+    return file_dict
 
-# choose_to_print_file 根据文章列表，打开指定的文章并打印输出，同时返回文件名。
-def choose_to_print_file(nlist,filepath):
-    choice_idx = input('选择你要评论的文章id:').strip()
-    if choice_idx.isnumeric():
-        choice_idx = int(choice_idx) - 1
-        if choice_idx <= len(nlist):
-            # filepath, './day15/hw/articles/'...
-            # file_name = filepath + '/' + nlist[choice_idx] 
-            file_name = os.path.join( filepath,nlist[choice_idx] )
-            with open(file_name) as fn:
-                print(fn.read())
-            return nlist[choice_idx]
-        else:
-            # 非法则重选
-            return choose_to_print_file(nlist,filepath)
-    else:
-        # 非法则重选
-        return choose_to_print_file(nlist,filepath)
+    
+
+# choose_to_print_file 根据文章id，获取指定的文章并打印输出。
+def choose_to_print_file(choice_id):
+            # 获取文章
+            result = db.article.find_one({"_id":choice_id},{
+                "_id":0,
+                "article.title":1,
+                "article.paragraph":1,
+                "comment_id":1
+                })
+            print('<文章标题>',result['article']['title'])
+            print('----------')
+            print('<文章正文>',result['article']['paragraph'])
+            
+
+            # 判断是否存在评论，有则输出
+            if result.get('comment_id'):
+                print('----------')
+                print('<评论区>')
+                comments = db.comment.find(
+                    {
+                        "_id":{
+                            "$in": result['comment_id'] }},
+                    {
+                        "_id":0,
+                        "comment_user":1,
+                        "comment_section":1 })
+                for n in comments:
+                    print(n['comment_user'],"评论说：",n['comment_section'])
+ 
 
 # 输入评论
-def enter_comment(username,comment_file):
+def enter_comment(username,id):
     comments = input('输入评论（取消按q）：').strip()
     if comments.upper() == 'Q':
         return 1
     elif len(comments) > 0:
-        comments = '<' + str(username) + '>' + '  ' + str(comments) + '\n'
-        with open(comment_file,mode='a+') as cf:
-            cf.write(comments)
-        print(comments)
+        # 实现的不优雅。回头学习了再看看有没有办法实现判断
+        # 获取一下,是否存在0这个初始id
+        x = db.comment.find_one({"_id":0},{"_id":1})
+        if x:
+            # 取_id最大值
+            x = db.comment.find({},{"_id":1}).sort("_id",-1).limit(1)
+            cid = x.next()['_id']+1
+        else:
+            # 不存在则初始化_id
+            cid = 0
+        db.comment.insert_one(
+            {"_id":cid,
+            "article_id":id,
+            "comment_user":username,
+            "comment_section":comments,
+            "comment_time":parser.parse(getftime())
+            }
+        )
+        db.article.update_one({"_id":id},{"$push":{"comment_id":cid}})
     else:
         print('正经点！')
-        return enter_comment(username,comment_file)
+        return enter_comment(username,id)
 
 # 评论
 @common.wrapper_login
@@ -282,48 +359,38 @@ def comment():
 
         # 待评论文章列表
         if choice == 1:
-            nlist = get_file_list(setting.articles_path,'arc')
+            ndict = get_file_dict(0)
 
         # 待评论日记列表
         elif choice == 2:
-            nlist = get_file_list(setting.articles_path,'dry')
+            ndict = get_file_dict(1)
 
         # 非法则重试
         else:
             return comment()
         
-        # 将列表处理并打印
-        #print(nlist)
-        # 2021 10 21 修复0文章时的问题
-        if len(nlist) < 1:
+        # 将ndict处理并打印成文章菜单
+        if len(ndict) < 1:
             print('该分类下目前没有内容噢！')
             return comment()
         else:
-            for idx in range(len(nlist)):
-                print( idx+1,  nlist[idx].split('.arc')[0]  )
+            print('\n' + 'ID' + '\t' + '文章标题' + '\n-----------------')
+            for key in ndict:
+                print(str(key) + '\t' + ndict[key])
 
-            # 调用选择系统，并输出文章内容。
-            file_name = choose_to_print_file(nlist,setting.articles_path) 
-            file_name = file_name + '.comment'
-            # 输出文章内容完成后，再输出该文章的评论，评论内容存放在与文章同名的.comment 文件中。
-            # 如果文件存在，则正常输出文件。 如果文件不存在，说明这个文章尚未被评论过，因此要初始化评论区。
-            comment_file = os.path.join(setting.comments_path,file_name)
-            # print(comment_file)
-            if os.path.isfile(comment_file):
-                # 已有评论，输出评论文件内容
-                with open(comment_file) as cf:
-                    print(cf.read())
-
+            # 输出文章标题菜单后，调用文章选择器choose_to_print_file
+            # 交互选择文章并执行文章内容输出
+            choice_id = input('选择你要评论的文章id:').strip()
+            if choice_id.isnumeric():
+                choice_id = int(choice_id)
+                if choice_id <= len(ndict):
+                    choose_to_print_file(choice_id)  
+                    enter_comment(username,choice_id)
+                else:
+                    print("非法1")
             else:
-                # 没有评论过。初始化评论文件。
-                with open(comment_file,mode='w+') as cf:
-                    cf.write('<评论区>\n---------------------------------------------------------\n')
-                    # 写完了，读一遍并输出。
-                    cf.seek(0)
-                    print(cf.read())
+                print("非法2")
 
-        # part 2 添加评论操作
-            enter_comment(username,comment_file)
 
     elif choice.upper() == 'M':
         return main()
@@ -358,6 +425,8 @@ def logout():
 def _exit():
     global flag
     flag = 0
+    # 关闭数据库会话句柄
+    client.close()
     print('\n\n再见!')
     return 0
 
