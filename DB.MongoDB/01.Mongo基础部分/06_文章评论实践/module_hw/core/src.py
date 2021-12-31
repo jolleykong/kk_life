@@ -67,10 +67,6 @@ from conf import setting
 from dateutil import parser
 import pymongo
 # 用代码模拟博客系统
-
-flag = 1
-
-
 # 0 连接数据库
 def conn_mongo(ip,port=27017):
     client = pymongo.MongoClient("mongodb://" + ip + ":" + str(port) + "/")
@@ -201,7 +197,7 @@ def article():
                 for line in iter(input,endstr):
                     section += line + '\n'
                 # 获取用户id，这块用对象方式实现其实更好。后续完善。
-                userid = db.account.find_one({"username":login_status},{"_id":1})
+                userid = db.account.find_one({"username":login_status},{"_id":1})['_id']
                 # 获取目前article最大_id ，实现自增
                 articleid = int(db.article.find({},{"_id":1}).sort("_id",-1).limit(1).next()['_id']) + 1
                 # 插入文档到数据库
@@ -227,7 +223,7 @@ def article():
                 with open(md_path,mode='r') as f:
                     section = f.read()
                 # 写入数据库
-                userid = db.account.find_one({"username":login_status},{"_id":1})
+                userid = db.account.find_one({"username":login_status},{"_id":1})['_id']
                 articleid = int(db.article.find({},{"_id":1}).sort("_id",-1).limit(1).next()['_id']) + 1
                 db.article.insert_one({
                     "_id":articleid,
@@ -466,7 +462,7 @@ def main():
         return main()
     # print(login_status)
 
-
+flag = 1
 # 程序主体运行
 def run():
     while flag:
