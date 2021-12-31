@@ -1,6 +1,4 @@
 '''
-../Python/pystudy/day15
-
 用代码模拟博客系统
 项目分析：
 1. 首先程序启动，页面显示下面内容供用户选择：
@@ -62,52 +60,17 @@
         如果原文章下面没有评论区以及分割线，则增加这两行再附上评论，否则直接在评论区最下面追加。
 '''
 
-import os.path
 import time
-
+import os
+from lib import common
+from conf import setting
 # 用代码模拟博客系统
 
 flag = 1
 
-# wrapper login
-def wrapper_login(f):
-    def inner(*args,**kwargs):
-        if login_status == 0:
-            login()
-        else:
-            print(f'你好{login_status}')
-            ret = f(*args,**kwargs)
-            return ret
-    return inner
-
-
-# wrapper login error
-# 函数执行失败3次则报错或退出。
-def warpper_3error(f):
-    err_count = 0
-    def inner(*args,**kwargs):
-        war = True
-        while war:
-            nonlocal err_count
-            if err_count < 3:
-                ret = f(*args,**kwargs)
-                
-                if ret == True:
-                    return ret
-                else:
-                    
-                    err_count += 1
-            else:
-                print('错误次数过多。')
-                war == False
-                # 得归零，不然程序会有问题，死循环在break这一块。
-                err_count = 0
-                break
-    return inner
-
 # 0.load auth file.
 def get_authdict():
-    with open('./day15/passwd',mode='r') as pwdfile:
+    with open(setting.account_db,mode='r') as pwdfile:
         lines = pwdfile.readlines()
         authdict = { i.strip().split("|")[0] : i.strip().split("|")[1]  for i in lines }
     return authdict
@@ -116,7 +79,7 @@ authdict = get_authdict()  # from get_authdict
 login_status = 0    # 默认登录标记为0，登录成功则值为用户名
 
 # 1.请登录
-@warpper_3error
+@common.warpper_3error
 def login():
     global login_status
     if login_status == 0:
@@ -164,7 +127,7 @@ def register():
                 if password == password2:
                     # 将注册信息写入文件
                     newuser = str(username)+'|'+str(password)+'\n'
-                    with open('./day15/passwd',mode='a+') as pwdfile:
+                    with open(setting.account_db,mode='a+') as pwdfile:
                         pwdfile.write(newuser)
                     print('注册成功！')
                     print(f'你的用户名为：{username}')
@@ -189,7 +152,7 @@ def register():
 #             # 如果选择直接写内容，让学生直接写文件名|文件内容，最后创建一个文章
 #             # 如果选择导入md文件，让用户输入已经准备好的md文件的文件路径，然后将此md的文件内容全部写入文章
 
-@wrapper_login
+@common.wrapper_login
 def article():
     username = login_status
     choice = input(f'欢迎{username}进入文章页面'+'''
@@ -204,10 +167,10 @@ def article():
 
         # 选择直接写文章
         if choice == 1:
-            title = input('\n<创建新文章>'+'输入文章标题：').strip()
+            title = input('\n<创建新文章>'+'输入文章标题：').strip()+'.arc'
             if len(title) > 0:
                 # 这块没判断文章是否存在。 先耍懒了。直接覆盖吧。
-                filename = './day15/hw/articles/'+title+'.arc'
+                filename = os.path.join(setting.articles_path,title)
                 with open(filename,mode='w') as new_article:
                     new_article.write( input(f'输入{title}的正文内容：\n') )
 
@@ -216,9 +179,9 @@ def article():
             md_path = input('输入完整的md文件路径：').strip()
             if os.path.isfile(md_path):
                 # 直接获取文件名，如果有扩展名，那就只取文件名部分
-                title = md_path.split('/')[-1].split('.md')[0]
+                title = md_path.split('/')[-1].split('.md')[0]+'.arc'
                 # 生成新的文件名用来归档
-                filename = './day15/hw/articles/'+title+'.arc'
+                filename = os.path.join(setting.articles_path,title)
 
                 # 文件内容复制
                 imp_article = open(filename,mode='w')
@@ -229,6 +192,7 @@ def article():
 
                 source_md.close()
                 imp_article.close()
+                print('导入完成。（如果能看到这里且没有报错，那就是成功了~）')
 
 
         # 超出范围则继续要求选择。
@@ -275,7 +239,8 @@ def choose_to_print_file(nlist,filepath):
         choice_idx = int(choice_idx) - 1
         if choice_idx <= len(nlist):
             # filepath, './day15/hw/articles/'...
-            file_name = filepath + nlist[choice_idx] 
+            # file_name = filepath + '/' + nlist[choice_idx] 
+            file_name = os.path.join( filepath,nlist[choice_idx] )
             with open(file_name) as fn:
                 print(fn.read())
             return nlist[choice_idx]
@@ -301,7 +266,7 @@ def enter_comment(username,comment_file):
         return enter_comment(username,comment_file)
 
 # 评论
-@wrapper_login
+@common.wrapper_login
 def comment():
     username = login_status
     print(f'欢迎{username}进入评论页面')
@@ -310,18 +275,18 @@ def comment():
     choice = input('''
     1.显示文章列表
     2.显示日记列表
-输入要查询的列表：''').strip()
+输入要查询的列表(按m回主菜单)：''').strip()
 
     if choice.isnumeric():
         choice = int(choice)
 
         # 待评论文章列表
         if choice == 1:
-            nlist = get_file_list('./day15/hw/articles/','arc')
+            nlist = get_file_list(setting.articles_path,'arc')
 
         # 待评论日记列表
         elif choice == 2:
-            nlist = get_file_list('./day15/hw/articles/','dry')
+            nlist = get_file_list(setting.articles_path,'dry')
 
         # 非法则重试
         else:
@@ -329,29 +294,39 @@ def comment():
         
         # 将列表处理并打印
         #print(nlist)
-        for idx in range(len(nlist)):
-            print( idx+1,  nlist[idx].split('.arc')[0]  )
-
-        # 调用选择系统，并输出文章内容。
-        file_name = choose_to_print_file(nlist,'./day15/hw/articles/')
-        # 输出文章内容完成后，再输出该文章的评论，评论内容存放在与文章同名的.comment 文件中。
-        # 如果文件存在，则正常输出文件。 如果文件不存在，说明这个文章尚未被评论过，因此要初始化评论区。
-        comment_file = './day15/hw/comments/' + file_name + '.comment'
-        if os.path.isfile(comment_file):
-            # 已有评论，输出评论文件内容
-            with open(comment_file) as cf:
-                print(cf.read())
-
+        # 2021 10 21 修复0文章时的问题
+        if len(nlist) < 1:
+            print('该分类下目前没有内容噢！')
+            return comment()
         else:
-            # 没有评论过。初始化评论文件。
-            with open(comment_file,mode='w+') as cf:
-                cf.write('<评论区>\n---------------------------------------------------------\n')
-                # 写完了，读一遍并输出。
-                cf.seek(0)
-                print(cf.read())
+            for idx in range(len(nlist)):
+                print( idx+1,  nlist[idx].split('.arc')[0]  )
 
-    # part 2 添加评论操作
-        enter_comment(username,comment_file)
+            # 调用选择系统，并输出文章内容。
+            file_name = choose_to_print_file(nlist,setting.articles_path) 
+            file_name = file_name + '.comment'
+            # 输出文章内容完成后，再输出该文章的评论，评论内容存放在与文章同名的.comment 文件中。
+            # 如果文件存在，则正常输出文件。 如果文件不存在，说明这个文章尚未被评论过，因此要初始化评论区。
+            comment_file = os.path.join(setting.comments_path,file_name)
+            # print(comment_file)
+            if os.path.isfile(comment_file):
+                # 已有评论，输出评论文件内容
+                with open(comment_file) as cf:
+                    print(cf.read())
+
+            else:
+                # 没有评论过。初始化评论文件。
+                with open(comment_file,mode='w+') as cf:
+                    cf.write('<评论区>\n---------------------------------------------------------\n')
+                    # 写完了，读一遍并输出。
+                    cf.seek(0)
+                    print(cf.read())
+
+        # part 2 添加评论操作
+            enter_comment(username,comment_file)
+
+    elif choice.upper() == 'M':
+        return main()
 
     else:
         return comment()
@@ -360,20 +335,20 @@ def comment():
 
 
 #     5.进入日记页面
-@wrapper_login
+@common.wrapper_login
 def diary():
     username = login_status
     print(f'欢迎{username}进入日记页面')
 
 
 #     6.进入收藏页面
-@wrapper_login
+@common.wrapper_login
 def favo():
     username = login_status
     print(f'欢迎{username}进入收藏页面')
 
 #     7.注销账号
-@wrapper_login
+@common.wrapper_login
 def logout():
     global login_status 
     login_status = 0
@@ -424,5 +399,6 @@ def main():
 
 
 # 程序主体运行
-while flag:
-    main()
+def run():
+    while flag:
+        main()
