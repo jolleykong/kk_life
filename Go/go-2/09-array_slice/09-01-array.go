@@ -60,25 +60,25 @@ func demo() {
 	// 将数组作为参数传递
 	// 会面临一个问题:数组形参是固定长度,不适用不同长度的数组.
 	myArray10 := [4]int{11, 22, 33, 44}
-	printArray(myArray10) // 运行正常
+	printArrayA(myArray10) // 运行正常
 	//myArray20 := [8]int{88, 77, 66, 55, 44, 33, 22, 11}
-	//printArray(myArray20) // cannot use myArray20 (variable of type [8]int) as type [4]int in argument to printArray
+	//printArrayA(myArray20) // cannot use myArray20 (variable of type [8]int) as type [4]int in argument to printArray
 
 	// 因此,需要将数组作为参数的时候,要使用动态数组
 
 }
 
 // 将数组作为参数传递
-func printArray(myArray [4]int) {
+func printArrayA(myArray [4]int) {
 	// 值拷贝,实际传入的是实参的副本
 	for idx, value := range myArray {
 		fmt.Println("idx:", idx, "value:", value)
 	}
 }
 
-//printArray 是值拷贝实现的,实际传入的是实参的副本
+//printArrayA 是值拷贝实现的,实际传入的是实参的副本
 // 验证一下 -> demo2
-func printArray2(myArray [4]int) {
+func printArrayB(myArray [4]int) {
 	// myArray是值拷贝,实际传入的是实参的副本
 	for idx, value := range myArray {
 		fmt.Println("idx:", idx, "value:", value)
@@ -88,7 +88,7 @@ func printArray2(myArray [4]int) {
 
 func demo2() {
 	myArray10 := [4]int{11, 22, 33, 44}
-	printArray2(myArray10)
+	printArrayB(myArray10)
 	// 调用函数后, 再次打印myArray10,来观察函数中myArray[0] = 999 动作是否对数组造成了修改
 	for idx, value := range myArray10 {
 		fmt.Println(idx, value)
