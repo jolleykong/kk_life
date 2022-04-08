@@ -1,0 +1,4 @@
+/*
+	map
+*/
+package main
