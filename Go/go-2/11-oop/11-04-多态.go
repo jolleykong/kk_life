@@ -69,7 +69,7 @@ func showAnimal(animal AnimalIF) {
 }
 
 func main() {
-	var animal AnimalIF    // 接口的数据类型，就是父类的指针
+	var animal AnimalIF    // 定义变量animal, 接口的数据类型, 就是父类的指针
 	animal = &Cat{"green"} // interface本身接收的是指针，因此要传入指针。
 	animal.Sleep()         // 调用Cat的Sleep() 方法
 	// green color cat had been sleep.
