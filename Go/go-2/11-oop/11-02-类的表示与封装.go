@@ -58,8 +58,8 @@ func (this *Hero) SetName2(newName string) {
 
 func main() {
 	// 创建一个对象
-	hero := Hero{Name: "kk", Ad: 100, Level: 1}
-	hero.Show() // name = kk
+	hero := Hero{Name: "kk", Ad: 100, Level: 1} // 属性的赋值使用 :
+	hero.Show()                                 // name = kk
 	/*	name = kk
 		AD = 100
 		level = 1*/
