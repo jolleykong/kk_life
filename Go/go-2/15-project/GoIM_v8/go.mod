@@ -1,3 +1,3 @@
-module GoIMv6
+module GoIMv8
 
 go 1.18
