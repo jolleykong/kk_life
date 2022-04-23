@@ -146,6 +146,7 @@ func (this *User) DoMessage(msg string) {
 		} else if len(msg) > 4 && msg[1:4] == "to " { // 引入私聊指令to的处理
 			// 直接将msg传入PrivateChat() 进行处理
 			this.PrivateChat(msg)
+			// 其实这块也可以直接解析msg,拿到target和msgbody后,使用target.SendMessage("*私聊信息* " + this.Name + "对你说:" + msg)
 
 		} else { // 尚不属于定义的指令,便认为是聊天内容,进行文本输出.
 			this.server.BoardCast(this, msg)
