@@ -14,11 +14,11 @@ type Client struct {
 	Port   int
 	Name   string
 	Conn   net.Conn
-	choose int
+	choose string
 }
 
 func (this *Client) menu() bool {
-	var choose int
+	var choose string
 	for {
 		fmt.Println("==========你怎么才来?==========")
 		fmt.Println("/\"+Menu\"返回菜单/")
@@ -28,11 +28,11 @@ func (this *Client) menu() bool {
 		fmt.Println("4.改名")
 		fmt.Println("0.再见")
 		time.Sleep(1 * time.Second)
-		fmt.Printf("输入传送密码:")
 
+		fmt.Printf("输入传送密码:")
 		fmt.Scanln(&choose)
 
-		if choose >= 0 && choose <= 4 {
+		if choose >= "0" && choose <= "4" {
 			this.choose = choose
 			return true
 		}
@@ -47,7 +47,11 @@ func (this *Client) World() {
 			return
 		} else {
 			fmt.Scanln(&msg)
-			this.Conn.Write([]byte(msg + "\n"))
+			_, err := this.Conn.Write([]byte(msg + "\n"))
+			if err == nil {
+				// 完成发送后，清除消息变量缓存
+				msg = ""
+			}
 		}
 	}
 }
@@ -88,29 +92,34 @@ func (this *Client) Quit() {
 }
 
 func (this *Client) Run() {
-	for this.choose != 0 {
+	for this.choose != "0" {
 		for this.menu() != true {
+			// do what
 		}
 		switch this.choose {
-		case 1:
+		case "1":
 			// 世界广播 World()
 			this.World()
 			break
-		case 2:
+		case "2":
 			// 窃窃私语 Whisper()
 			this.Whisper()
 			break
-		case 3:
+		case "3":
 			// 查看在线 List()
 			this.List()
 			break
-		case 4:
+		case "4":
 			// 改名 ChangeName()
 			this.ChangeName()
 			break
-		case 0:
+		case "0":
 			// 退出 Quit()
 			this.Quit()
+			break
+		default:
+			// do nothine
+			fmt.Println("what")
 			break
 		}
 	}
@@ -124,7 +133,7 @@ func NewClient(server string, port int) *Client {
 	client := &Client{
 		Server: server,
 		Port:   port,
-		choose: 1024,
+		choose: "1024",
 	}
 	// 创建连接
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", server, port))
@@ -143,7 +152,7 @@ var port int
 
 func init() {
 	flag.StringVar(&server, "server", "127.0.0.1", "服务器地址.")
-	flag.IntVar(&port, "port", 9999, "服务器端口.")
+	flag.IntVar(&port, "port", 9998, "服务器端口.")
 }
 
 func main() {
