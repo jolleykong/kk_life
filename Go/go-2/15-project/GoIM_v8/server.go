@@ -34,6 +34,8 @@ func (this *Server) BoardCast(user *User, msg string) {
 // 监听Message广播消息channel的go routine,一旦有消息就发送给全部的在线的user
 func (this *Server) ListenMessager() {
 	for {
+		// 这样能减少些cpu消耗?试试看.
+		time.Sleep(3 * time.Second)
 		msg := <-this.Message
 		// send msg to all user who online.
 		this.mapLock.Lock()
