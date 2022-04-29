@@ -103,6 +103,10 @@ func for2() {
 4. `var s string = ""` 类型一致情况下是冗余的，类型不一致时是必须的。
 - 四种方法都可以，正常情况下应当使用前两种方式，使用显式的初始化来说明初始化变量的重要性，使用隐式的初始化来表明初始化变量不重要。
 
+- new(T)
+
+  > 创建一个T类型变量，初始化为T类型的零值，返回其地址(*T)
+
 # bufio包
 - 扫描器特性 Scanner
 `bufio.NewScanner()`
@@ -288,17 +292,17 @@ func for2() {
             >    numbers = append(numbers, 1)
             >    fmt.Printf("len=%d,cap=%d,slice=%v\n", len(numbers), cap(numbers), numbers)
             >    // len=4,cap=5,slice=[0 0 0 1]
-            >    
+            >       
             >    // 继续追加1个元素
             >    numbers = append(numbers, 2)
             >    fmt.Printf("len=%d,cap=%d,slice=%v\n", len(numbers), cap(numbers), numbers)
             >    // len=5,cap=5,slice=[0 0 0 1 2]
-            >    
+            >       
             >    // 继续追加
             >    numbers = append(numbers, 1)
             >    fmt.Printf("len=%d,cap=%d,slice=%v\n", len(numbers), cap(numbers), numbers)
             >    // len=6,cap=10,slice=[0 0 0 1 2 1]
-            >    
+            >       
             >    // 自动扩容cap,会开辟已有cap长度的cap
             >    ```
 
@@ -337,7 +341,7 @@ func for2() {
 
 - map
   - map声明方式
-      
+    
       1. 声明,再开辟空间
       
          ```
@@ -386,3 +390,6 @@ func for2() {
 
 笔记及资料:链接: https://pan.baidu.com/s/1glckD7XGInHDFQQKCRE66g 提取码: gyj3
 ```
+
+
+- 闭包
