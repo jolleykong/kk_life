@@ -4,11 +4,10 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4fc93bb2-2ffc-4b1c-9323-08729d998fdc" name="变更" comment="">
-      <change afterPath="$PROJECT_DIR$/Go/go-2/05-init/05-init_func.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Go/go-2/05-init/go.mod" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Go/go-2/04-multireturn.go" beforeDir="false" afterPath="$PROJECT_DIR$/Go/go-2/04-multireturn.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Go/go.mod" beforeDir="false" />
+    <list default="true" id="4fc93bb2-2ffc-4b1c-9323-08729d998fdc" name="变更" comment="变更">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Go/go-2/15-project/GoIM_Client/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/Go/go-2/15-project/GoIM_Client/go.mod" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Go/go-2/15-project/GoIM_Client/go.sum" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -22,7 +21,7 @@
       </list>
     </option>
   </component>
-  <component name="GOROOT" url="file:///usr/local/go" />
+  <component name="GOROOT" url="file://$PROJECT_DIR$/../../Program Files/Go" />
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
@@ -52,14 +51,14 @@
     <property name="go.sdk.automatically.set" value="true" />
     <property name="go.watchers.conflict.with.on.save.actions.check.performed" value="true" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
-    <property name="settings.editor.selected.configurable" value="advanced.settings" />
+    <property name="settings.editor.selected.configurable" value="reference.settings.ide.settings.uml" />
   </component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/Go/go-2/05-init" />
     </key>
   </component>
-  <component name="RunManager" selected="Go 构建.go build 05-init_func.go">
+  <component name="RunManager" selected="Go 构建.go build client.go">
     <configuration name="go build 04-multireturn.go" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
       <module name="kk_mysql" />
       <working_directory value="$PROJECT_DIR$/Go" />
@@ -76,6 +75,14 @@
       <filePath value="$PROJECT_DIR$/Go/go-2/05-init/05-init_func.go" />
       <method v="2" />
     </configuration>
+    <configuration name="go build client.go" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
+      <module name="kk_mysql" />
+      <working_directory value="$PROJECT_DIR$/Go/go-2/15-project/GoIM_Client" />
+      <kind value="FILE" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="$PROJECT_DIR$/Go/go-2/15-project/GoIM_Client/client.go" />
+      <method v="2" />
+    </configuration>
     <configuration name="go test go-2" type="GoTestRunConfiguration" factoryName="Go Test" nameIsGenerated="true">
       <module name="kk_mysql" />
       <working_directory value="$PROJECT_DIR$/Go" />
@@ -86,12 +93,14 @@
       <method v="2" />
     </configuration>
     <list>
-      <item itemvalue="Go 测试.go test go-2" />
       <item itemvalue="Go 构建.go build 04-multireturn.go" />
       <item itemvalue="Go 构建.go build 05-init_func.go" />
+      <item itemvalue="Go 构建.go build client.go" />
+      <item itemvalue="Go 测试.go test go-2" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Go 构建.go build client.go" />
         <item itemvalue="Go 构建.go build 05-init_func.go" />
         <item itemvalue="Go 构建.go build 04-multireturn.go" />
       </list>
@@ -111,6 +120,7 @@
         </entry>
       </map>
     </option>
+    <option name="oldMeFiltersMigrated" value="true" />
   </component>
   <component name="VgoProject">
     <integration-enabled>true</integration-enabled>
