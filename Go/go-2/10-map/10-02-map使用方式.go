@@ -1,3 +1,7 @@
+/*
+	传入的实参为地址传递,原map被函数所修改.
+*/
+
 package main
 
 import "fmt"

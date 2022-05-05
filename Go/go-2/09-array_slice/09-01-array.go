@@ -45,11 +45,11 @@ func demo() {
 	*/
 
 	// 查看数组的数据类型
-	fmt.Printf("myArray1 types = %T\n", myArray1)
-	fmt.Printf("myArray2 types = %T\n", myArray2)
+	fmt.Printf("myArray1 types = %T\n", myArray1) // myArray1 types = [10]int
+	fmt.Printf("myArray2 types = %T\n", myArray2) // myArray2 types = [10]int
 
 	myArray3 := [4]int{11, 22, 33, 44}
-	fmt.Printf("myArray3 types = %T\n", myArray3)
+	fmt.Printf("myArray3 types = %T\n", myArray3) // myArray3 types = [4]int
 
 	/*
 		myArray1 types = [10]int
