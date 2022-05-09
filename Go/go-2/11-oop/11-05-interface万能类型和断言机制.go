@@ -25,7 +25,7 @@ func myFunc(arg interface{}) {
 	value, ok := arg.(string)
 	if !ok {
 		fmt.Println("arg is not string.")
-		fmt.Printf("value type : %T\n", value) // 这一步实现是有问题的,因为结果显示都是string, mark 后续搞懂了回来补充.
+		fmt.Printf("value type : %T\n", arg)
 	} else {
 		fmt.Println("arg is string type,value=", value)
 	}

@@ -38,11 +38,11 @@ func (this *Superman) Fly() {
 
 func main() {
 	h := Human{name: "kk", sex: "M"}
-	h.Eat()
+	h.Eat() // kk eating
 
 	// 定义一个子类对象
 	s := Superman{Human{"yy", "M"}, 99} // 这里用name:"yy" 会报错，奇怪。
-	s.Fly()                             // kk eatingyy is flying!
+	s.Fly()                             // yy is flying!
 	s.Eat()                             // 超人吃饭！
 	s.Walk()                            // yy walking
 

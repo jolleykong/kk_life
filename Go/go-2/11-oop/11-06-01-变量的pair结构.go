@@ -51,6 +51,7 @@ func main() {
 
 	// w:pair<type:,value:>
 	var w io.Writer
+
 	// w:pair<type: *os.File ,value: "/dev/tty" 文件描述符>
 	w = r.(io.Writer) // 断言
 

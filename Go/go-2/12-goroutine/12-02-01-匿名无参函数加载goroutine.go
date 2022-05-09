@@ -30,5 +30,6 @@ func main() {
 }
 
 /*
-
- */
+B.defer
+A.defer
+*/
