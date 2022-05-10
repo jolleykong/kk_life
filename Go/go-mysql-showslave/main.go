@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"strconv"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -14,7 +15,6 @@ import (
 // 一阶段: 在所有slave延迟为0的情况下, 随机一个延迟为0的升为新的master
 
 type slaveStatus struct {
-	IsSlave                       bool // 仅供判断使用.
 	Slave_IO_State                string
 	Master_Host                   string
 	Master_User                   string
@@ -78,7 +78,6 @@ type slaveStatus struct {
 }
 
 type slaveHosts struct {
-	IsSlave    bool
 	Server_id  string
 	Host       string
 	Port       int
@@ -91,17 +90,19 @@ type t1 struct {
 	dt string
 }
 
-type dbconn struct {
-	User   string
-	Pwd    string
-	Ip     string
-	Port   string
-	Schema string
-	Conn   *sql.DB
+type DBconn struct {
+	User           string
+	Pwd            string
+	Ip             string
+	Port           string
+	Schema         string
+	Conn           *sql.DB
+	HasSlaveHosts  bool
+	HasSlaveStatus bool
 }
 
 // 初始化db连接
-func (this *dbconn) InitDB() error {
+func (this *DBconn) InitDB() error {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", this.User, this.Pwd, this.Ip, this.Port, this.Schema)
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
@@ -112,113 +113,158 @@ func (this *dbconn) InitDB() error {
 }
 
 // 获取slave status结果
-func getSlaveStatus(db *sql.DB) (slaveStatus, error) {
-	sql := "show slave status"
-	var ss slaveStatus
-	err := db.QueryRow(sql).Scan(&ss.Slave_IO_State,
-		&ss.Master_Host,
-		&ss.Master_User,
-		&ss.Master_Port,
-		&ss.Connect_Retry,
-		&ss.Master_Log_File,
-		&ss.Read_Master_Log_Pos,
-		&ss.Relay_Log_File,
-		&ss.Relay_Log_Pos,
-		&ss.Relay_Master_Log_File,
-		&ss.Slave_IO_Running,
-		&ss.Slave_SQL_Running,
-		&ss.Replicate_Do_DB,
-		&ss.Replicate_Ignore_DB,
-		&ss.Replicate_Do_Table,
-		&ss.Replicate_Ignore_Table,
-		&ss.Replicate_Wild_Do_Table,
-		&ss.Replicate_Wild_Ignore_Table,
-		&ss.Last_Errno,
-		&ss.Last_Error,
-		&ss.Skip_Counter,
-		&ss.Exec_Master_Log_Pos,
-		&ss.Relay_Log_Space,
-		&ss.Until_Condition,
-		&ss.Until_Log_File,
-		&ss.Until_Log_Pos,
-		&ss.Master_SSL_Allowed,
-		&ss.Master_SSL_CA_File,
-		&ss.Master_SSL_CA_Path,
-		&ss.Master_SSL_Cert,
-		&ss.Master_SSL_Cipher,
-		&ss.Master_SSL_Key,
-		&ss.Seconds_Behind_Master,
-		&ss.Master_SSL_Verify_Server_Cert,
-		&ss.Last_IO_Errno,
-		&ss.Last_IO_Error,
-		&ss.Last_SQL_Errno,
-		&ss.Last_SQL_Error,
-		&ss.Replicate_Ignore_Server_Ids,
-		&ss.Master_Server_Id,
-		&ss.Master_UUID,
-		&ss.Master_Info_File,
-		&ss.SQL_Delay,
-		&ss.SQL_Remaining_Delay,
-		&ss.Slave_SQL_Running_State,
-		&ss.Master_Retry_Count,
-		&ss.Master_Bind,
-		&ss.Last_IO_Error_Timestamp,
-		&ss.Last_SQL_Error_Timestamp,
-		&ss.Master_SSL_Crl,
-		&ss.Master_SSL_Crlpath,
-		&ss.Retrieved_Gtid_Set,
-		&ss.Executed_Gtid_Set,
-		&ss.Auto_Position,
-		&ss.Replicate_Rewrite_DB,
-		&ss.Channel_Name,
-		&ss.Master_TLS_Version,
-		&ss.Master_public_key_path,
-		&ss.Get_master_public_key,
-		&ss.Network_Namespace)
+func getSlaveStatus(ipt *DBconn) (map[string]string, error) {
+	var db *sql.DB = ipt.Conn
+	var ssmap = make(map[string]string)
 
-	// fmt.Printf("%v,%T", ss, ss)
+	sql := "show slave status"
+
+	rows, err := db.Query(sql)
 	if err != nil { // 有错误信息姑且认为不是slave
-		// fmt.Println(err)
-		ss.IsSlave = false
-	} else {
-		ss.IsSlave = true
+		fmt.Println("getSlaveStatus err", err)
 	}
-	return ss, err
+	// 迭代结果
+	ss := slaveStatus{}
+	for rows.Next() {
+		rows.Scan(&ss.Slave_IO_State,
+			&ss.Master_Host,
+			&ss.Master_User,
+			&ss.Master_Port,
+			&ss.Connect_Retry,
+			&ss.Master_Log_File,
+			&ss.Read_Master_Log_Pos,
+			&ss.Relay_Log_File,
+			&ss.Relay_Log_Pos,
+			&ss.Relay_Master_Log_File,
+			&ss.Slave_IO_Running,
+			&ss.Slave_SQL_Running,
+			&ss.Replicate_Do_DB,
+			&ss.Replicate_Ignore_DB,
+			&ss.Replicate_Do_Table,
+			&ss.Replicate_Ignore_Table,
+			&ss.Replicate_Wild_Do_Table,
+			&ss.Replicate_Wild_Ignore_Table,
+			&ss.Last_Errno,
+			&ss.Last_Error,
+			&ss.Skip_Counter,
+			&ss.Exec_Master_Log_Pos,
+			&ss.Relay_Log_Space,
+			&ss.Until_Condition,
+			&ss.Until_Log_File,
+			&ss.Until_Log_Pos,
+			&ss.Master_SSL_Allowed,
+			&ss.Master_SSL_CA_File,
+			&ss.Master_SSL_CA_Path,
+			&ss.Master_SSL_Cert,
+			&ss.Master_SSL_Cipher,
+			&ss.Master_SSL_Key,
+			&ss.Seconds_Behind_Master,
+			&ss.Master_SSL_Verify_Server_Cert,
+			&ss.Last_IO_Errno,
+			&ss.Last_IO_Error,
+			&ss.Last_SQL_Errno,
+			&ss.Last_SQL_Error,
+			&ss.Replicate_Ignore_Server_Ids,
+			&ss.Master_Server_Id,
+			&ss.Master_UUID,
+			&ss.Master_Info_File,
+			&ss.SQL_Delay,
+			&ss.SQL_Remaining_Delay,
+			&ss.Slave_SQL_Running_State,
+			&ss.Master_Retry_Count,
+			&ss.Master_Bind,
+			&ss.Last_IO_Error_Timestamp,
+			&ss.Last_SQL_Error_Timestamp,
+			&ss.Master_SSL_Crl,
+			&ss.Master_SSL_Crlpath,
+			&ss.Retrieved_Gtid_Set,
+			&ss.Executed_Gtid_Set,
+			&ss.Auto_Position,
+			&ss.Replicate_Rewrite_DB,
+			&ss.Channel_Name,
+			&ss.Master_TLS_Version,
+			&ss.Master_public_key_path,
+			&ss.Get_master_public_key,
+			&ss.Network_Namespace)
+
+		ssmap[ss.Master_Host] = fmt.Sprintf("%v|%v|%v|%q", ss.Slave_IO_Running, ss.Slave_IO_Running, strconv.Itoa(int(ss.SQL_Remaining_Delay.Int16)), ss.Executed_Gtid_Set)
+	}
+	// 输出结果
+	// fmt.Println(ssmap)
+
+	// 根据是否存在结果,决定结构体属性
+	if len(ssmap) == 0 {
+		// may be master 没有slavestatus结果.
+		// fmt.Println("Maybe a Matser")
+	} else {
+		ipt.HasSlaveStatus = true
+		// fmt.Println("IS a Slave")
+	}
+	//
+	return ssmap, err
 }
 
 // 获取slave hosts 结果
-func getSlaveHosts(db *sql.DB) (slaveHosts, error) {
+func getSlaveHosts(ipt *DBconn) ([]string, error) {
+	var db *sql.DB = ipt.Conn
+	var shlist []string
+
 	sql := "show slave hosts"
-	var sh slaveHosts
-	err := db.QueryRow(sql).Scan(&sh.Server_id, &sh.Host, &sh.Port, &sh.Master_id, &sh.Slave_UUID)
-	if err != nil { // 有错误信息姑且认为是slave,但不严谨,级联复制时该逻辑存在问题.
-		// fmt.Println(err)
-		sh.IsSlave = true
+	rows, err := db.Query(sql)
+	if err != nil {
+		fmt.Println("getSlaveHosts err", err)
 	}
-	return sh, err
+	// 迭代结果
+	sh := slaveHosts{}
+	// 如果能迭代,循环迭代.否则就是非master
+	for rows.Next() {
+		rows.Scan(&sh.Server_id, &sh.Host, &sh.Port, &sh.Master_id, &sh.Slave_UUID)
+		shlist = append(shlist, sh.Host+":"+strconv.Itoa(sh.Port))
+	}
+
+	// 输出结果
+	// fmt.Println(shlist)
+
+	// 根据是否存在结果,决定结构体属性
+	if shlist == nil {
+		// fmt.Println("Not a Matser")
+	} else {
+		// fmt.Println("IS a Matser")
+		ipt.HasSlaveHosts = true
+	}
+	// ipt.HasSlaveHosts = true
+	return shlist, err
 
 }
 
 // 连接任意数据库,如果为master则查询到所有slave并输出信息.
-func getSlave(ipt dbconn) {
-	var db *sql.DB = ipt.Conn
-	slavestatus, _ := getSlaveStatus(db)
-	slavehosts, _ := getSlaveHosts(db)
+func getSlave(ipt DBconn) {
+	slavestatus, _ := getSlaveStatus(&ipt)
+	slavehosts, _ := getSlaveHosts(&ipt)
 	// slavestatus输出错误则可能是主 , show slave hosts不为空则至少承担了主角色.
-	if slavestatus.IsSlave == false && slavehosts.IsSlave == false {
+	if ipt.HasSlaveHosts == true && ipt.HasSlaveStatus == false {
 		fmt.Printf("%s:%s maybe the master.\n", ipt.Ip, ipt.Port)
+		// 输出slave信息.
+		if len(slavestatus) != 0 {
+			fmt.Println(slavestatus)
+		}
+		// 输出slave host
+		if len(slavehosts) != 0 {
+			fmt.Println("slaves:", slavehosts)
+		}
 	} else {
 		// 则为从
 		fmt.Printf("%s:%s is NOT the master, maybe a slave.\n", ipt.Ip, ipt.Port)
+		fmt.Println(ipt.HasSlaveHosts, ipt.HasSlaveStatus)
 	}
 }
 
 func main() {
-	sampleDB := dbconn{
+	sampleDB := DBconn{
 		User:   "test",
 		Pwd:    "test",
 		Ip:     "127.0.0.1",
-		Port:   "3307",
+		Port:   "3306",
 		Schema: "test",
 	}
 	// 定义一个db对象
@@ -226,21 +272,7 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
-
 	defer sampleDB.Conn.Close()
-
-	// testsql := "select id,dt from t1"
-	// var testresult t1
-	// err := db.QueryRow(testsql).Scan(&testresult.id, &testresult.dt)
-	// if err != nil {
-	// 	fmt.Println("err", err)
-	// 	return
-	// }
-	// fmt.Println(testresult)
-
-	// slavestatus := getSlaveStatus(db)
-	// fmt.Printf("%v", slavestatus)
-	// fmt.Printf("%q", slavestatus.Executed_Gtid_Set)
 
 	// 尝试获取slave信息
 	getSlave(sampleDB)
