@@ -33,7 +33,7 @@ func getSlave(ipt DBconn) {
 		fmt.Printf("%s:%s maybe the master.\n", ipt.Ip, ipt.Port)
 		// 输出slave信息.
 		if len(slavestatus) != 0 {
-			fmt.Println(slavestatus)
+			fmt.Println("slavestatus:", slavestatus)
 		}
 		// 输出slave host
 		if len(slavehosts) != 0 {
