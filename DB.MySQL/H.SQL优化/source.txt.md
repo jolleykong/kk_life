@@ -70,335 +70,20 @@
 > 	优化方法，官网：https://dev.mysql.com/doc/refman/5.5/en/optimization.html
 > 
 > 
-> ​	
-> 	查询执行计划：  explain +SQL语句
-> 			explain  select  * from tb ;
-> 
->  id : 编号				
->  select_type ：查询类型
->  table ：表
->  type   ：类型
->  possible_keys ：预测用到的索引 
->  key  ：实际使用的索引
->  key_len ：实际使用索引的长度     
->  ref  :表之间的引用
->  rows ：通过索引查询到的数据量 
->  Extra     :额外的信息
-> 
-> 准备数据：
-> create table course
-> (
-> cid int(3),
-> cname varchar(20),
-> tid int(3)
-> );
-> create table teacher
-> (
-> tid int(3),
-> tname varchar(20),
-> tcid int(3)
-> );
-> 
-> create table teacherCard
-> (
-> tcid int(3),
-> tcdesc varchar(200)
-> );
-> 
-> 
-> insert into course values(1,'java',1);
-> insert into course values(2,'html',1);
-> insert into course values(3,'sql',2);
-> insert into course values(4,'web',3);
-> 
-> insert into teacher values(1,'tz',1);
-> insert into teacher values(2,'tw',2);
-> insert into teacher values(3,'tl',3);
-> 
-> insert into teacherCard values(1,'tzdesc') ;
-> insert into teacherCard values(2,'twdesc') ;
-> insert into teacherCard values(3,'tldesc') ;
-> 
-> 查询课程编号为2  或 教师证编号为3  的老师信息
-> explain +sql:
-> (1)id: id值相同，从上往下 顺序执行。  t3-tc3-c4
-> 
-> 				  tc3--c4-t6
-> 
-> 表的执行顺序  因数量的个数改变而改变的原因： 笛卡儿积
-> 
-> 		a 	 b  	 c
-> 		4	3	 2   =  			2*3=6 * 4   =24
-> 								3*4=12* 2   =24
-> 数据小的表 优先查询；
-> 
-> 
-> 
-> id值不同：id值越大越优先查询 (本质：在嵌套子查询时，先查内层 再查外层)
-> 
-> 查询教授SQL课程的老师的描述（desc）
-> explain select tc.tcdesc from teacherCard tc,course c,teacher t where c.tid = t.tid
-> and t.tcid = tc.tcid and c.cname = 'sql' ;
-> 
-> 将以上 多表查询 转为子查询形式：
-> 
-> explain select tc.tcdesc from teacherCard tc where tc.tcid = 
-> (select t.tcid from teacher t where  t.tid =  
-> 	(select c.tid from course c where c.cname = 'sql')
-> );
-> 
-> 子查询+多表： 
-> explain select t.tname ,tc.tcdesc from teacher t,teacherCard tc where t.tcid= tc.tcid
-> and t.tid = (select c.tid from course c where cname = 'sql') ;
-> 
-> 
-> id值有相同，又有不同： id值越大越优先；id值相同，从上往下 顺序执行
-> 
-> 
-> (2)select_type:查询类型
-> PRIMARY:包含子查询SQL中的 主查询 （最外层）
-> SUBQUERY：包含子查询SQL中的 子查询 （非最外层）
-> simple:简单查询（不包含子查询、union）
-> derived:衍生查询(使用到了临时表)
-> 	a.在from子查询中只有一张表
-> 		explain select  cr.cname 	from ( select * from course where tid in (1,2) ) cr ;
-> 
-> 	b.在from子查询中， 如果有table1 union table2 ，则table1 就是derived,table2就是union
-> 		explain select  cr.cname 	from ( select * from course where tid = 1  union select * from course where tid = 2 ) cr ;
-> union:上例
-> union result :告知开发人员，那些表之间存在union查询
-> 
-> 
-> system > const > eq_ref > ref > fulltext > ref_or_null > index_merge > unique_subquery > index_subquery > range > index > ALL
-> 
-> 
-> 
-> (3)type:索引类型、类型
-> 	system>const>eq_ref>ref>range>index>all   ，要对type进行优化的前提：有索引
-> 
-> 其中：system,const只是理想情况；实际能达到 ref>range
-> 
-> system（忽略）: 只有一条数据的系统表 ；或 衍生表只有一条数据的主查询
-> 	
-> create table test01
-> (
-> 	tid int(3),
-> 	tname varchar(20)
-> );
-> 
-> insert into test01 values(1,'a') ;
-> commit;
-> 增加索引
-> alter table test01 add constraint tid_pk primary key(tid) ;
-> explain select * from (select * from test01 )t where tid =1 ;
-> 
-> const:仅仅能查到一条数据的SQL ,用于Primary key 或unique索引  （类型 与索引类型有关）
-> explain select tid from test01 where tid =1 ;
-> alter table test01 drop primary key ;
-> create index test01_index on test01(tid) ;
-> 
-> eq_ref:唯一性索引：对于每个索引键的查询，返回匹配唯一行数据（有且只有1个，不能多 、不能0）
-> select ... from ..where name = ... .常见于唯一索引 和主键索引。
-> 
->  alter table teacherCard add constraint pk_tcid primary key(tcid);
-> alter table teacher add constraint uk_tcid unique index(tcid) ;
-> 
-> 
-> explain select t.tcid from teacher t,teacherCard tc where t.tcid = tc.tcid ;
-> 
-> 以上SQL，用到的索引是 t.tcid,即teacher表中的tcid字段；
-> 如果teacher表的数据个数 和 连接查询的数据个数一致（都是3条数据），则有可能满足eq_ref级别；否则无法满足。
-> 
-> 
-> ref：非唯一性索引，对于每个索引键的查询，返回匹配的所有行（0，多）
-> 准备数据：
->  insert into teacher values(4,'tz',4) ;
->  insert into teacherCard values(4,'tz222');
-> 
-> 测试：
-> alter table teacher add index index_name (tname) ;
-> explain select * from teacher 	where tname = 'tz';
-> 
-> 
-> range：检索指定范围的行 ,where后面是一个范围查询(between   ,> < >=,     特殊:in有时候会失效 ，从而转为 无索引all)
-> alter table teacher add index tid_index (tid) ;
-> explain select t.* from teacher t where t.tid in (1,2) ;
-> explain select t.* from teacher t where t.tid <3 ;
-> 
-> 
-> 
-> index：查询全部索引中数据
-> explain select tid from teacher ; --tid 是索引， 只需要扫描索引表，不需要所有表中的所有数据
-> 
-> 
-> all：查询全部表中的数据
-> explain select cid from course ;  --cid不是索引，需要全表所有，即需要所有表中的所有数据
-> 
-> 
-> system/const: 结果只有一条数据
-> eq_ref:结果多条；但是每条数据是唯一的 ；
-> ref：结果多条；但是每条数据是是0或多条 ；
-> 
-> 
-> （4）possible_keys ：可能用到的索引，是一种预测，不准。
-> 
-> alter table  course add index cname_index (cname);
-> 
-> explain select t.tname ,tc.tcdesc from teacher t,teacherCard tc
->  where t.tcid= tc.tcid
-> and t.tid = (select c.tid from course c where cname = 'sql') ;
-> 
-> 
-> 如果 possible_key/key是NULL，则说明没用索引
-> 
-> 
-> explain select tc.tcdesc from teacherCard tc,course c,teacher t where c.tid = t.tid
-> and t.tcid = tc.tcid and c.cname = 'sql' ;
-> 
-> 
-> （5） key ：实际使用到的索引
-> 
-> 
-> （6）key_len ：索引的长度 ;
->     作用：用于判断复合索引是否被完全使用  （a,b,c）。
-> create table test_kl
-> (
-> 	name char(20) not null default ''
-> );
-> alter table test_kl add index index_name(name) ;
-> explain select * from test_kl where name ='' ;   -- key_len :60
-> 在utf8：1个字符站3个字节  
-> 
-> alter table test_kl add column name1 char(20) ;  --name1可以为null
-> 
-> alter table test_kl add index index_name1(name1) ;
-> explain select * from test_kl where name1 ='' ; 
-> --如果索引字段可以为Null,则会使用1个字节用于标识。
-> 
-> drop index index_name on test_kl ;
-> drop index index_name1 on test_kl ;
-> 
-> 增加一个复合索引 
-> alter table test_kl add index name_name1_index (name,name1) ; 
-> 
-> explain select * from test_kl where name1 = '' ; --121
-> explain select * from test_kl where name = '' ; --60
-> 
-> 
-> varchar(20)
-> alter table test_kl add column name2 varchar(20) ; --可以为Null 
-> alter table test_kl add index name2_index (name2) ;
-> 
-> explain select * from test_kl where name2 = '' ;  --63
-> 20*3=60 +  1(null)  +2(用2个字节 标识可变长度)  =63
-> 
-> utf8:1个字符3个字节
-> gbk:1个字符2个字节
-> latin:1个字符1个字节
-> 
-> (7) ref : 注意与type中的ref值区分。
-> 	作用： 指明当前表所 参照的 字段。
-> 		select ....where a.c = b.x ;(其中b.x可以是常量，const)
-> 
-> alter table course  add index tid_index (tid) ;
-> 
-> 	explain select * from course c,teacher t where c.tid = t.tid  and t.tname ='tw' ;
-> 
-> 
-> (8)rows: 被索引优化查询的 数据个数 (实际通过索引而查询到的 数据个数)
-> 	explain select * from course c,teacher t  where c.tid = t.tid
-> 	and t.tname = 'tz' ;
-> 
-> 
-> （9）Extra：
-> 	(i).using filesort ： 性能消耗大；需要“额外”的一次排序（查询）  。常见于 order by 语句中。
-> 排序：先查询
-> 
-> 10个人 根据年龄排序。
-> 
-> 
-> create table test02
-> (
-> 	a1 char(3),
-> 	a2 char(3),
-> 	a3 char(3),
-> 	index idx_a1(a1),
-> 	index idx_a2(a2),
-> 	index idx_a3(a3)
-> );
-> 
-> explain select * from test02 where a1 ='' order by a1 ;
-> 
-> a1:姓名  a2：年龄
-> 
-> 
-> explain select * from test02 where a1 ='' order by a2 ; --using filesort
-> 小结：对于单索引， 如果排序和查找是同一个字段，则不会出现using filesort；如果排序和查找不是同一个字段，则会出现using filesort；
-> 	避免： where哪些字段，就order by那些字段2
-> 
-> 
-> 复合索引：不能跨列（最佳左前缀）
-> drop index idx_a1 on test02;
-> drop index idx_a2 on test02;
-> drop index idx_a3 on test02;
-> 
-> alter table test02 add index idx_a1_a2_a3 (a1,a2,a3) ;
-> explain select *from test02 where a1='' order by a3 ;  --using filesort
-> explain select *from test02 where a2='' order by a3 ; --using filesort
-> explain select *from test02 where a1='' order by a2 ;
-> explain select *from test02 where a2='' order by a1 ; --using filesort
-> 	小结：避免： where和order by 按照复合索引的顺序使用，不要跨列或无序使用。
-> 
-> 
-> 	(ii). using temporary:性能损耗大 ，用到了临时表。一般出现在group by 语句中。
-> 	explain select a1 from test02 where a1 in ('1','2','3') group by a1 ;
-> 	explain select a1 from test02 where a1 in ('1','2','3') group by a2 ; --using temporary
-> 	避免：查询那些列，就根据那些列 group by .
-> 	
-> 	(iii). using index :性能提升; 索引覆盖（覆盖索引）。原因：不读取原文件，只从索引文件中获取数据 （不需要回表查询）
-> 		只要使用到的列 全部都在索引中，就是索引覆盖using index
-> 	
-> 	例如：test02表中有一个复合索引(a1,a2,a3)
-> 		explain select a1,a2 from test02 where a1='' or a2= '' ; --using index   
-> 		
-> 		drop index idx_a1_a2_a3 on test02;
-> 	
-> 		alter table test02 add index idx_a1_a2(a1,a2) ;
-> 		explain select a1,a3 from test02 where a1='' or a3= '' ;
-> 
-> 
-> ​		
-> 		如果用到了索引覆盖(using index时)，会对 possible_keys和key造成影响：
-> 		a.如果没有where，则索引只出现在key中；
-> 		b.如果有where，则索引 出现在key和possible_keys中。
-> 	
-> 		explain select a1,a2 from test02 where a1='' or a2= '' ;
-> 		explain select a1,a2 from test02  ;
-> 	
-> 	(iii).using where （需要回表查询）
-> 		假设age是索引列
-> 		但查询语句select age,name from ...where age =...,此语句中必须回原表查Name，因此会显示using where.
-> 		
-> 	explain select a1,a3 from test02 where a3 = '' ; --a3需要回原表查询
-> 
-> 
-> 	(iv). impossible where ： where子句永远为false
-> 		explain select * from test02 where a1='x' and a1='y'  ;
-> 
 > 
 > 6.优化案例
 > 	单表优化、两表优化、三表优化
 > 	（1）单表优化
-> create table book
-> (
-> 	bid int(4) primary key,
-> 	name varchar(20) not null,
-> 	authorid int(4) not null,
-> 	publicid int(4) not null,
-> 	typeid int(4) not null 
-> );
-> 
-> insert into book values(1,'tjava',1,1,2) ;
+>  create table book
+>  (
+>  	bid int(4) primary key,
+>  	name varchar(20) not null,
+>  	authorid int(4) not null,
+>  	publicid int(4) not null,
+>  	typeid int(4) not null 
+>  );
+>  
+>  insert into book values(1,'tjava',1,1,2) ;
 > insert into book values(2,'tc',2,1,2) ;
 > insert into book values(3,'wx',3,2,1) ;
 > insert into book values(4,'math',4,2,3) ;	
@@ -513,10 +198,10 @@
 > 示例：
 > create table test03
 > (
->   a1 int(4) not null,
->   a2 int(4) not null,
->   a3 int(4) not null,
->   a4 int(4) not null
+> a1 int(4) not null,
+> a2 int(4) not null,
+>  a3 int(4) not null,
+> a4 int(4) not null
 > );
 > alter table test03 add index idx_a1_a2_a3_4(a1,a2,a3,a4) ;
 > 
@@ -527,8 +212,8 @@
 > 	--以上 2个SQL，使用了 全部的复合索引
 > 	
 > 	explain select a1,a2,a3,a4 from test03 where a1=1 and a2=2 and a4=4 order by a3; 
-> 	--以上SQL用到了a1 a2两个索引，该两个字段 不需要回表查询using index ;而a4因为跨列使用，造成了该索引失效，需要回表查询 因此是using where；以上可以通过 key_len进行验证
-> 	
+>  	--以上SQL用到了a1 a2两个索引，该两个字段 不需要回表查询using index ;而a4因为跨列使用，造成了该索引失效，需要回表查询 因此是using where；以上可以通过 key_len进行验证
+>  	
 > 	explain select a1,a2,a3,a4 from test03 where a1=1 and a4=4 order by a3; 
 > 	--以上SQL出现了 using filesort(文件内排序，“多了一次额外的查找/排序”) ：不要跨列使用( where和order by 拼起来，不要跨列使用)
 > 
@@ -560,12 +245,12 @@
 > 	（2）不要在索引上进行任何操作（计算、函数、类型转换），否则索引失效
 > 		select ..where A.x = .. ;  --假设A.x是索引
 > 		不要：select ..where A.x*3 = .. ;
-> 		explain select * from book where authorid = 1 and typeid = 2 ;--用到了at2个索引
+>  		explain select * from book where authorid = 1 and typeid = 2 ;--用到了at2个索引
 > 		explain select * from book where authorid = 1 and typeid*2 = 2 ;--用到了a1个索引
 > 		explain select * from book where authorid*2 = 1 and typeid*2 = 2 ;----用到了0个索引
 > 		explain select * from book where authorid*2 = 1 and typeid = 2 ;----用到了0个索引,原因：对于复合索引，如果左边失效，右侧全部失效。(a,b,c)，例如如果 b失效，则b c同时失效。
 > 	
->  		drop index idx_atb on book ; 
+> 		drop index idx_atb on book ; 
 > 		alter table book add index idx_authroid (authorid) ;
 > 		alter table book add index idx_typeid (typeid) ;
 > 		explain select * from book where authorid*2 = 1 and typeid = 2 ;
@@ -575,7 +260,7 @@
 > 	explain select * from book where authorid = 1 and typeid =2 ;
 > 	
 > 	-- SQL优化，是一种概率层面的优化。至于是否实际使用了我们的优化，需要通过explain进行推测。
-> 	
+>    	
 > 	explain select * from book where authorid != 1 and typeid =2 ;
 > 	explain select * from book where authorid != 1 and typeid !=2 ;
 > 
@@ -762,7 +447,7 @@
 > 
 > --如果报错：You have an error in your SQL syntax，说明SQL语句语法有错，需要修改SQL语句；
 > 
->  如果报错This function has none of DETERMINISTIC, NO SQL, or READS SQL DATA in its declaration and binary logging is enabled (you *might* want to use the less safe log_bin_trust_function_creators variable)
+> 如果报错This function has none of DETERMINISTIC, NO SQL, or READS SQL DATA in its declaration and binary logging is enabled (you *might* want to use the less safe log_bin_trust_function_creators variable)
 > 	是因为 存储过程/存储函数在创建时 与之前的 开启慢查询日志冲突了 
 > 	解决冲突：
 > 	临时解决( 开启log_bin_trust_function_creators )
@@ -828,10 +513,10 @@
 > 	b.分析海量数据:
 > 	（1）profiles
 > 	show profiles ; --默认关闭
-> 	show variables like '%profiling%';
-> 	set profiling = on ; 
-> 	show profiles  ：会记录所有profiling打开之后的  全部SQL查询语句所花费的时间。缺点：不够精确，只能看到 总共消费的时间，不能看到各个硬件消费的时间（cpu  io ）
-> 	
+>   	show variables like '%profiling%';
+>   	set profiling = on ; 
+>   	show profiles  ：会记录所有profiling打开之后的  全部SQL查询语句所花费的时间。缺点：不够精确，只能看到 总共消费的时间，不能看到各个硬件消费的时间（cpu  io ）
+>   	
 > 	(2)--精确分析:sql诊断
 > 	 show profile all for query 上一步查询的的Query_Id
 > 	 show profile cpu,block io for query 上一步查询的的Query_Id
@@ -880,7 +565,7 @@
 > insert into tablelock(name) values('a1');
 > insert into tablelock(name) values('a2');
 > insert into tablelock(name) values('a3');
-> insert into tablelock(name) values('a4');
+>  insert into tablelock(name) values('a4');
 > insert into tablelock(name) values('a5');
 > commit;
 > 
@@ -1049,5 +734,5 @@
 > 
 > 	spring boot（企业级框架,目前使用较多）  
 > ```
->
+> 
 > 
