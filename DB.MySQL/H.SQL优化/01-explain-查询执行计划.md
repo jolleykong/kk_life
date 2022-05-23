@@ -1,5 +1,7 @@
 # explain
 
+> [04.explain执行计划解读.](../9.MySQL性能优化/0.性能优化总览/04.explain执行计划解读.md)
+
 | explain       |                        |
 | ------------- | ---------------------- |
 | ID            | 编号                   |
@@ -279,6 +281,22 @@ explain select t.tname ,tc.tcdesc from teacher t,teacherCard tc where t.tcid= tc
 
 ## Extra：
 
+| Extra             | meanings                                                     |
+| ----------------- | ------------------------------------------------------------ |
+| Using filesort    | 没有办法利用现有索引进行排序，需要额外排序。<br>建议<font color=red>根据排序需要创建相应合适的索引</font>。<br/>order by 。 |
+| Using temporary   | 需要用临时表存储结果集。<font color=red>通常是因为group by的列没有索引</font>。<br><font color=red>也可能是因为同时有group by和order by，但group by和order by的列又不一样</font>。<br/>超过temp table size后还会用到磁盘临时表。<br>组合查询返回的数据量太大需要建立一个临时表存储数据,出现这个sql应该优化。 |
+| Using Join Buffer | 多表join，但无索引（效率很低），需要用到join buffer，需要优化SQL。 |
+| Using where       | 表示是从索引中根据where条件进行检索。<br/>如果连Using where也没有的话，表示本次查询可以从索引中直接取得结果，就是Using index时的情况，不过并不是用于检索（看type列释义：index）。<br/>如果select中的where条件包含了聚集索引列的话，又是可以利用索引进行扫描的，这是有可能并不出现using index字样。 |
+| Using index       | 利用覆盖索引，无需回表即可取得结果数据。                     |
+
+- join列有一个列没索引，或者两个列都有索引，但是排序列却不属于驱动表，也会产生临时表。
+- using join buffer 通常需要BNL快连接，多表join但是没有索引，或者效率很低。
+- 出现joinbuffer通常意味着SQL效率较低
+- using where 中性。
+- using index 好事儿。
+
+
+
 1. using filesort 
 
    - 性能消耗大；需要“额外”的一次排序（查询）  。
@@ -403,13 +421,13 @@ explain select t.tname ,tc.tcdesc from teacher t,teacherCard tc where t.tcid= tc
 
    
 
-4. using where （需要回表查询）
+4. using where 
 
-   - 通过索引检索后不能够直接获取全部结果，还需要回表读
+   - 表示是从索引中根据where条件进行检索。
 
      > ```
      > CREATE TABLE `test02` ( `a1` char(3), `a2` char(3),`a3` char(3) ,KEY `a1` (`a1`));
-     > - a3 需要回表读。
+     > - a3 需要进一步根据索引a1来检索。
      > ```
      >
      > ![image-20220516205855052](.pics/image-20220516205855052.png)
@@ -419,5 +437,4 @@ explain select t.tname ,tc.tcdesc from teacher t,teacherCard tc where t.tcid= tc
 5. impossible where
 
    -  where子句永远为false
-
      ![image-20220516210019056](.pics/image-20220516210019056.png)
