@@ -517,6 +517,22 @@ nohup /elk/prometheus-2.37.0.linux-amd64/prometheus --config.file=/elk/prometheu
   --> ok.
   ```
 
+- startup
+
+  ```
+  #!/bin/bash
+  # if node_exporter is not in process list, then auto execute it.
+  ps -ef|grep node_exporter | grep -v grep
+  
+  if [ $? -ne 0 ] ;then
+  	nohup /opt/node_exporter-1.3.1.linux-amd64/node_exporter  > /dev/null 2>&1 &
+  fi
+  
+  
+  # nohup /opt/node_exporter-1.3.1.linux-amd64/node_exporter  > /dev/null 2>&1 &
+  
+  ```
+
   
 
 - 将node加入Prometheus监控
@@ -791,3 +807,129 @@ elasticsearch-prometheus-exporter ,用来使Prometheus监控elk/efk。
 
   
 
+
+
+# oracle_exporter
+
+- 在oracle database server 上安装 oracle_exporter
+
+  ```
+  [oracle@VS-TESTDB01 oracledb_exporter.0.3.0rc1-ora18.5.linux-amd64]$ cat start.sh
+  export ORACLE_SID=TESTZQF
+  export DATA_SOURCE_NAME=${USERNAME}/${PASSWORD}
+  ./oracledb_exporter
+  
+  ```
+
+- 使用oracle用户运行
+
+- libclntsh.so.18.1 问题
+
+  ```
+  cd /u01/app/oracle/product/12.1.0/dbhome_1/lib/
+  $ ln -s libclntsh.so libclntsh.so.18.1
+  $ ls libclntsh.so.* -l
+  lrwxrwxrwx. 1 oracle oinstall       12 Aug 25  2020 libclntsh.so.10.1 -> libclntsh.so
+  lrwxrwxrwx. 1 oracle oinstall       12 Aug 25  2020 libclntsh.so.11.1 -> libclntsh.so
+  -rwxr-xr-x. 1 oracle oinstall 55452679 Aug 25  2020 libclntsh.so.12.1
+  lrwxrwxrwx  1 oracle oinstall       12 Aug 10 14:09 libclntsh.so.18.1 -> libclntsh.so
+  
+  ```
+
+- check
+
+  ```
+  oracle_exporter 机器的9161 端口访问
+  ```
+
+  
+
+- 将job添加到Prometheus.yml 中， 重启Prometheus
+
+  ```
+  ######################## Oracle监控 ##########################
+    - job_name: 'oracle'
+      metrics_path: '/metrics'
+      static_configs:
+      - targets: ['xxx.xxx.xxx.xxx:9161']
+  ```
+
+- 指定端口
+
+  ```
+  oracledb_exporter --log.level error --web.listen-address 0.0.0.0:9161
+  ```
+
+  > ```
+  > Usage of oracledb_exporter:
+  >   --log.format value
+  >        	If set use a syslog logger or JSON logging. Example: logger:syslog?appname=bob&local=7 or logger:stdout?json=true. Defaults to stderr.
+  >   --log.level value
+  >        	Only log messages with the given severity or above. Valid levels: [debug, info, warn, error, fatal].
+  >   --custom.metrics string
+  >         File that may contain various custom metrics in a TOML file.
+  >   --default.metrics string
+  >         Default TOML file metrics.
+  >   --web.listen-address string
+  >        	Address to listen on for web interface and telemetry. (default ":9161")
+  >   --web.telemetry-path string
+  >        	Path under which to expose metrics. (default "/metrics")
+  >   --database.maxIdleConns string
+  >         Number of maximum idle connections in the connection pool. (default "0")
+  >   --database.maxOpenConns string
+  >         Number of maximum open connections in the connection pool. (default "10")
+  >   --web.secured-metrics  boolean
+  >         Expose metrics using https server. (default "false")
+  >   --web.ssl-server-cert string
+  >         Path to the PEM encoded certificate file.
+  >   --web.ssl-server-key string
+  >         Path to the PEM encoded key file.
+  > ```
+
+- oracledb_export startup.sh
+
+  - 一个节点多个实例的情况下
+
+    ```
+    #!/bin/bash
+    # for auto start oracledb_exporter of prometheus. Aug 10,2022 by kk
+    source /home/oracle/.bash_profile
+    
+    if [ ! -f  "${ORACLE_HOME}/lib/libclntsh.so.18.1" ] ;then
+            cd $ORACLE_HOME/lib && ln -s libclntsh.so libclntsh.so.18.1
+            else
+            echo "libclntsh.so.18.1 has been already exists."
+    fi
+    
+    
+    ps -ef|grep oracledb_exporter | grep -v grep
+    
+    if [ $? -ne 0 ] ;then
+    	export LD_LIBRARY_PATH=$ORACLE_HOME/lib:/lib:/usr/lib
+    	export DATA_SOURCE_NAME=zabbix2019/pwdorabbix_udontknow
+    
+    	script_dir=$(cd $(dirname $0);pwd)
+    	cd $script_dir
+    
+    	export ORACLE_SID=SSDB2
+    	nohup ./oracledb_exporter --log.level error --web.listen-address 0.0.0.0:9161 > ${ORACLE_SID}_log 2>&1 &
+    
+    	export ORACLE_SID=CENDB2
+    	nohup ./oracledb_exporter --log.level error --web.listen-address 0.0.0.0:9162 > ${ORACLE_SID}_log 2>&1 &
+    
+    	export ORACLE_SID=FMDB2
+    	nohup ./oracledb_exporter --log.level error --web.listen-address 0.0.0.0:9163 > ${ORACLE_SID}_log 2>&1 &
+    
+    	# end
+    	ps -ef|grep oracledb
+    	sleep 5
+    	ps -ef|grep oracledb
+    fi
+    
+    #echo $0
+    #script_dir=$(cd $(dirname $0);pwd)
+    #echo $script_dir
+    
+    ```
+
+    
