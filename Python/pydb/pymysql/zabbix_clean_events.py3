@@ -2,9 +2,9 @@ import pymysql.cursors
 
 # connect to db
 connection = pymysql.connect( 
-                                host='10.240.22.34',
-                                user='manager',
-                                password='kongyan102490',
+                                host='-',
+                                user='-',
+                                password='-',
                                 charset='utf8mb4',
                                 database='zabbix',
                                 cursorclass=pymysql.cursors.DictCursor
