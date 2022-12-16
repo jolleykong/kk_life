@@ -1,4 +1,5 @@
 import pymysql.cursors
+import time
 
 # connect to db
 connection = pymysql.connect( 
@@ -13,7 +14,7 @@ with connection:
     # create db
     with connection.cursor() as cursor:
         sql1 = "select min(clock) as start from events;"
-        sql2 = "select unix_timestamp(subdate(now(),60)) as end;"
+        sql2 = "select unix_timestamp(subdate(now(),90)) as end;"
         sql_1 = "delete from zabbix.events where clock<(%s);"
 
         cursor.execute(sql1)
@@ -30,16 +31,19 @@ with connection:
         print('begin: ',v_startline)
         print('end: ',v_endline)
 
+        print('<--Start. ',time.strftime("%Y-%m-%d %H:%M:%S") )
         while v_startline + 100000 < v_endline:
             v_startline = v_startline + 100000
             cursor.execute(sql_1,(v_startline))
             result = cursor.fetchone()
             print(result)
+            print( time.strftime("%Y-%m-%d %H:%M:%S") )
             connection.commit()
 
         cursor.execute(sql1)
         result_final = cursor.fetchone()
         print('Done. ',result_final)
+        print('-->Done.' ,time.strftime("%Y-%m-%d %H:%M:%S"), '\n' )
 
 
         # cursor.execute(sql2)
